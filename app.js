@@ -19,10 +19,7 @@ app.use(cors({
   origin: "https://julio-g-marrero.github.io", 
   methods:["GET","POST","PATCH","DELETE"]
 }));
-mongoose.connect('mongodb://localhost:27017/backorder',{
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+mongoose.connect('mongodb://localhost:27017/backorder',{});
 
 const { PORT = 4000 } = process.env;
 
