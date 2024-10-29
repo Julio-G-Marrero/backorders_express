@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema({
     email_vendedor: {
         type:String,
-        required: true
+        required: true,
+        validate: [validateEmail, 'Direccion de correo Invalida'],
+        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Direccion de correo Invalida']
     },
     nombre_vendedor: {
         type:String,
@@ -70,14 +72,14 @@ const orderSchema = new mongoose.Schema({
         default: "Sin comentarios"
     },
     user_id: {
-        type:String,
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'user',
+      required: true,
     },
     fecha_apertura: {
         type: Date,
         default: Date.now,
     },
 })
-  
+
   module.exports = mongoose.model('order', orderSchema);
-  
