@@ -142,7 +142,8 @@ module.exports.authorizeOrder = (req,res) => {
 }
 
 module.exports.deleteOrder = (req,res) => {
-    Order.findByIdAndDelete(req.params.orderId)
+    const {orderId} = req.params
+    Order.findByIdAndDelete(orderId)
     .then(order => res.send({ data: order }))
     .catch(err => res.status(500).send({ message: 'Error' }));
 }

@@ -16,7 +16,7 @@ const allowedOrigins = [
 ];
 
 app.use(cors({ 
-  origin: "https://julio-g-marrero.github.io", 
+  origin: "http://localhost:3000", 
   methods:["GET","POST","PATCH","DELETE"]
 }));
 mongoose.connect('mongodb://localhost:27017/backorder',{});
