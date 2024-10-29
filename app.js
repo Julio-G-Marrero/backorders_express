@@ -29,8 +29,8 @@ app.listen(PORT, () => {
   console.log(`App listening at port ${PORT}`);
 })
 
-app.use('/register', createUser);
-app.post('/login', login);
+app.use('/users/register', createUser);
+app.post('/users/login', login);
 
 app.use(auth);
 

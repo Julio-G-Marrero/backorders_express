@@ -13,16 +13,15 @@ exports.createUser = (req, res) => {
       .then(hash => User.create({
         nombre: req.body.nombre,
         email: req.body.email,
-        password: hash, 
+        password: hash,
       }))
       .then((user) => res.send(user))
-      .catch((err) => res.status(400).send(err));
+      .catch((err) => res.status(err));
 };
 
 const jwt = require('jsonwebtoken');
 exports.login = (req, res) => {
     const { email, password } = req.body;
-    console.log(email)
     User.findOne({ email })
     .then((user) => {
       if (!user) {
@@ -33,19 +32,17 @@ exports.login = (req, res) => {
           if (!matched) {
             return res.send({ error: "Email o contraseña incorrecta" });
           }
-          return user; // ahora user está disponible
+          return user;
         }).then((user) => {
-            console.log(user)
             // estamos creando un token
             const token = jwt.sign({ _id: user._id }, 'some-secret-key',
-              {   expiresIn: '1d' });      
+              {   expiresIn: '1d' });
             // devolvemos el token
             res.send({ token, user });
           })
           .catch((err) => {
             res
               .status(401)
-              .send({ message: err.message });
           });
     });
 };
