@@ -13,10 +13,12 @@ module.exports.getOrders = (req,res) => {
         .catch(() => res.status(500).send({ message: 'Error' }));
     }else if(departament == 2){
         Order.find(
-            { $or: [ { user_id: { $regex :  user_id, $options: 'i' } }] }
+            { user_id : user_id}
         ).sort({fecha_apertura : -1}).skip(startIndex).limit(limit)
         .then(orders => res.send({data: orders}))
-        .catch((err) => res.status(500).send({ message: err }));
+        .catch((err) => console.log(err)
+          // res.status(500).send({ message: err })
+      );
     }
 }
 
@@ -53,9 +55,9 @@ module.exports.getOrdersByStatusId = (req,res) => {
         .catch((err) => res.status(500).send({ message: err }));
     }else if(departament == 2){
         Order.find(
-            { 
-                $and: [ { id_estatus: statusid }, { $or: [ { user_id: { $regex :  user_id, $options: 'i' } }] } ] 
-            } 
+            {
+                $and: [ { id_estatus: statusid }, { $or: [ { user_id: { $regex :  user_id, $options: 'i' } }] } ]
+            }
         )
         .limit(7)
         .sort({fecha_apertura : -1}).skip(startIndex).limit(7)
@@ -70,10 +72,10 @@ module.exports.getOrdersByValue = (req,res) => {
     var user_id = '' + id;
     const {value} = req.query
     Order.find(
-        { 
-            $and: [ { user_id: { $regex :  user_id, $options: 'i' } }, { 
-                $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }] 
-            } ] 
+        {
+            $and: [ { user_id: { $regex :  user_id, $options: 'i' } }, {
+                $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }]
+            } ]
 
         })
     .limit(7)
@@ -99,9 +101,9 @@ module.exports.getOrdersByValueAndStatus = (req,res) => {
         .catch((err) => res.status(500).send({ message: err }));
     }else if(departament == 2){
         Order.find({
-            $and: [ { id_estatus: status }, { user_id: { $regex :  user_id, $options: 'i' } }, { 
-                $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }] 
-            } ] 
+            $and: [ { id_estatus: status }, { user_id: { $regex :  user_id, $options: 'i' } }, {
+                $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }]
+            } ]
             } )
         .limit(7)
         .sort({fecha_apertura : -1})

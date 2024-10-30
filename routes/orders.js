@@ -9,22 +9,26 @@ routerOrders.get('/stats',getOrdersStats)
 routerOrders.get('/indexs',getOrdersIndexes)
 routerOrders.get('/idstatus',getOrdersByStatusId)
 
-routerOrders.post('/', celebrate({
-  body: Joi.object().keys({
-    title: Joi.string().required().min(2).max(30),
-    text: Joi.string().required().min(2),
-  }),
-}), createOrders);
+routerOrders.post('/',
+//   celebrate({
+//   body: Joi.object().keys({
+//     title: Joi.string().required().min(2).max(30),
+//     text: Joi.string().required().min(2),
+//   }),
+// }),
+ createOrders);
 // routerOrders.post('/',createOrders)
 routerOrders.patch('/:orderId/estatus',changeStatusOrder)
 routerOrders.patch('/:orderId/authorize',authorizeOrder)
 
-routerOrders.delete('/:orderId/delete', celebrate({
-    // validar parámetros
-  params: Joi.object().keys({
-    orderId: Joi.string().alphanum().length(24),
-  }),
-}), deleteOrder);
+routerOrders.delete('/:orderId/delete',
+//   celebrate({
+//     // validar parámetros
+//   params: Joi.object().keys({
+//     orderId: Joi.string().alphanum().length(24),
+//   }),
+// }),
+ deleteOrder);
 
 // routerOrders.delete('/:orderId/delete',deleteOrder)
 

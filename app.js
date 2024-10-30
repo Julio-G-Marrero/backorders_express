@@ -5,6 +5,7 @@ const cors = require("cors");
 const auth = require('./middleware/auth');
 const routerOrders = require('./routes/orders')
 const routerUsers = require('./routes/users')
+const routerProducts = require('./routes/products')
 const {createUser,login } = require('./controllers/users')
 
 const app = express();
@@ -34,6 +35,7 @@ app.post('/users/login', login);
 
 app.use(auth);
 
+app.use('/products',routerProducts)
 app.use('/users',routerUsers)
 app.use('/orders',routerOrders)
 

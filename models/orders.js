@@ -75,8 +75,7 @@ const orderSchema = new mongoose.Schema({
         default: "Sin comentarios"
     },
     user_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      type:String,
       required: true,
     },
     fecha_apertura: {
