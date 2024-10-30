@@ -1,6 +1,6 @@
 const routerOrders = require('express').Router();
 const { getOrders, createOrders,changeStatusOrder,deleteOrder, authorizeOrder,getOrdersIndexes,getOrdersByStatusId,getOrdersByValue,getOrdersStats,getOrdersByValueAndStatus } = require('../controllers/orders')
-const { celebrate, Joi } = require('celebrate');
+// const { celebrate, Joi } = require('celebrate');
 
 routerOrders.get('/',getOrders)
 routerOrders.get('/search-status-value',getOrdersByValueAndStatus)
