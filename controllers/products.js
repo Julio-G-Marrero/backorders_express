@@ -24,6 +24,7 @@ module.exports.createProduct = (req, res) => {
 
 module.exports.getProductsByValues = (req,res) => {
   const {value} = req.query
+  const limit = parseInt(req.query.limit) || 13;
   Product.find(
       {
         $or: [
@@ -34,7 +35,7 @@ module.exports.getProductsByValues = (req,res) => {
           { sub_familia: { $regex : value, $options: 'i' } },
         ]
       })
-  .limit(13)
+  .limit(limit)
   .then(products => res.send({ products }))
   .catch((err) => res.status(500).send({ message: err }));
 }

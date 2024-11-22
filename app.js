@@ -6,6 +6,7 @@ const auth = require('./middleware/auth');
 const routerOrders = require('./routes/orders')
 const routerUsers = require('./routes/users')
 const routerProducts = require('./routes/products')
+const routerClient = require('./routes/clients')
 const {createUser,login } = require('./controllers/users')
 
 const app = express();
@@ -33,9 +34,10 @@ app.listen(PORT, () => {
 app.use('/users/register', createUser);
 app.post('/users/login', login);
 
-app.use(auth);
+// app.use(auth);
 
 app.use('/products',routerProducts)
+app.use('/clients',routerClient)
 app.use('/users',routerUsers)
 app.use('/orders',routerOrders)
 

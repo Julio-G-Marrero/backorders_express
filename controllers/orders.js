@@ -50,7 +50,7 @@ module.exports.getOrdersByStatusId = (req,res) => {
         Order.find(
             { $or: [ { id_estatus: { $regex : statusid, $options: 'i' } }] }
         )
-        .sort({fecha_apertura : -1}).limit(7)
+        .sort({fecha_apertura : -1}).limit(limit)
         .then(order => res.send({ data: order }))
         .catch((err) => res.status(500).send({ message: err }));
     }else if(departament == 2){
@@ -59,8 +59,8 @@ module.exports.getOrdersByStatusId = (req,res) => {
                 $and: [ { id_estatus: statusid }, { $or: [ { user_id: { $regex :  user_id, $options: 'i' } }] } ]
             }
         )
-        .limit(7)
-        .sort({fecha_apertura : -1}).skip(startIndex).limit(7)
+        .limit(limit)
+        .sort({fecha_apertura : -1}).skip(startIndex).limit(limit)
         .then(orders => res.send({data: orders}))
         .catch((err) => res.status(500).send({ message: err }));
     }

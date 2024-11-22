@@ -25,15 +25,12 @@ const orderSchema = new mongoose.Schema({
     },
     cliente_email: {
         type:String,
-        required: true,
     },
     cliente_tel: {
         type:String,
-        required: true,
     },
     cliente_ubicacion: {
         type:String,
-        required: true,
     },
     cantidad_productos: {
         type:String,

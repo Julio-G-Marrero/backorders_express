@@ -16,7 +16,7 @@ exports.createUser = (req, res) => {
         password: hash,
       }))
       .then((user) => res.send(user))
-      .catch((err) => res.status(err));
+      .catch((err) => res.status(500).send({message: err}));
 };
 
 const jwt = require('jsonwebtoken');

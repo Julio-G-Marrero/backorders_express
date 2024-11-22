@@ -14,7 +14,7 @@ const productSchema = new mongoose.Schema({
     required: true
   },
   precio: {
-    type:Number,
+    type:String,
     required: true
   },
   familia: {
@@ -24,6 +24,10 @@ const productSchema = new mongoose.Schema({
   sub_familia: {
     type:String,
     required: true
+  },
+  provedor: {
+    type:String,
+    default:"Diverso"
   }
 })
 
