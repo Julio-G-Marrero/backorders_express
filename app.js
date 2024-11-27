@@ -34,7 +34,7 @@ app.listen(PORT, () => {
 app.use('/users/register', createUser);
 app.post('/users/login', login);
 
-// app.use(auth);
+app.use(auth);
 
 app.use('/products',routerProducts)
 app.use('/clients',routerClient)

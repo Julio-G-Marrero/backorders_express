@@ -149,3 +149,84 @@ module.exports.deleteOrder = (req,res) => {
     .then(order => res.send({ data: order }))
     .catch(err => res.status(500).send({ message: 'Error' }));
 }
+
+
+module.exports.getAuthorizedProducts =  async (req, res) => {
+  try {
+    // Consulta todos los documentos
+    const ventas = await Order.find().select('productos_autorizados monto_autorizado cliente_nombre');
+
+    // Extraer los productos autorizados de cada documento
+    const productosAutorizados = ventas.map(venta => ({
+      clienteNombre: venta.cliente_nombre,
+      productos: venta.productos_autorizados,
+      montoAutorizado: venta.monto_autorizado,
+    }));
+
+    // Opcional: Puedes sumar los montos autorizados si es necesario
+    const totalMontoAutorizado = ventas.reduce((total, venta) => {
+      return total + parseFloat(venta.monto_autorizado || 0);
+    }, 0);
+    // Responder con los productos autorizados y el monto total
+    res.json({
+      productosAutorizados,
+      totalMontoAutorizado,
+    });
+  } catch (error) {
+    console.error('Error al obtener los productos autorizados:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
+};
+
+module.exports.getDeniedProducts = async (req, res) => {
+  try {
+    // Consulta todos los documentos y selecciona solo los productos denegados
+    const ventas = await Order.find().select('productos_denegados cliente_nombre');
+
+    // Extraer los productos denegados de cada venta
+    const productosDenegados = ventas.map(venta => ({
+      clienteNombre: venta.cliente_nombre,
+      productosDenegados: venta.productos_denegados,
+    }));
+
+    // Filtrar los productos denegados que existen
+    const productosDenegadosFiltrados = productosDenegados.filter(venta => venta.productosDenegados.length > 0);
+
+    // Responder con los productos denegados
+    res.json({
+      productosDenegados: productosDenegadosFiltrados,
+    });
+  } catch (error) {
+    console.error('Error al obtener los productos denegados:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
+};
+
+module.exports.getAllProducts = async (req, res) => {
+  try {
+    // Realizamos la consulta para obtener todos los clientes con sus productos
+    const clientes = await Order.find();
+
+    // Estructuramos los datos para el reporte
+    const reporte = clientes.map(cliente => {
+      return {
+        cliente_nombre: cliente.cliente_nombre,
+        productos: cliente.productos.map(producto => ({
+          descripcion: producto.descripcion,
+          cantidad: producto.cantidad,
+          precio: producto.precio,
+          proveedor: producto.proveedor,
+          familia: producto.familia,
+          sub_familia: producto.sub_familia
+        }))
+      };
+    });
+
+    // Enviamos el reporte como respuesta
+    res.json(reporte);
+
+  } catch (err) {
+    console.error("Error al generar el reporte: ", err);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+};

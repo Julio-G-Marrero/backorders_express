@@ -1,5 +1,5 @@
 const routerOrders = require('express').Router();
-const { getOrders, createOrders,changeStatusOrder,deleteOrder, authorizeOrder,getOrdersIndexes,getOrdersByStatusId,getOrdersByValue,getOrdersStats,getOrdersByValueAndStatus } = require('../controllers/orders')
+const { getOrders, createOrders,changeStatusOrder,deleteOrder, authorizeOrder,getOrdersIndexes,getOrdersByStatusId,getOrdersByValue,getOrdersStats,getOrdersByValueAndStatus,getAuthorizedProducts,getDeniedProducts,getAllProducts } = require('../controllers/orders')
 // const { celebrate, Joi } = require('celebrate');
 
 routerOrders.get('/',getOrders)
@@ -8,6 +8,9 @@ routerOrders.get('/search/:all',getOrdersByValue)
 routerOrders.get('/stats',getOrdersStats)
 routerOrders.get('/indexs',getOrdersIndexes)
 routerOrders.get('/idstatus',getOrdersByStatusId)
+routerOrders.get('/informes-autorizados',getAuthorizedProducts)
+routerOrders.get('/informes-denegados',getDeniedProducts)
+routerOrders.get('/informes-todos',getAllProducts)
 
 routerOrders.post('/',
 //   celebrate({
