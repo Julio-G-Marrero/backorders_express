@@ -1,5 +1,6 @@
 const Product = require('../models/products');
-
+const fs = require('fs');
+const csv = require('csv-parser');
 module.exports.getProducts = (req,res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 13;
@@ -40,3 +41,59 @@ module.exports.getProductsByValues = (req,res) => {
   .catch((err) => res.status(500).send({ message: err }));
 }
 
+module.exports.importCsvProducto = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send({ message: 'No se ha subido ningún archivo.' });
+  }
+
+  const filePath = req.file.path;
+  const productsArray = [];
+
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (row) => {
+      productsArray.push({
+        codigo_barras: row.codigo_barras,
+        codigo_interno: row.codigo_interno,
+        descripcion: row.descripcion,
+        precio: parseFloat(row.precio),
+        familia: row.familia,
+        sub_familia: row.sub_familia,
+        proveedor: row.proveedor || 'Diverso',
+      });
+    })
+    .on('end', async () => {
+      try {
+        // Crear operaciones de escritura en bloque
+        const bulkOperations = productsArray.map((product) => ({
+          updateOne: {
+            filter: {
+              $or: [
+                { codigo_barras: product.codigo_barras },
+                { codigo_interno: product.codigo_interno },
+              ],
+            },
+            update: { $set: product },
+            upsert: true, // Inserta si no existe
+          },
+        }));
+
+        const result = await Product.bulkWrite(bulkOperations);
+        const importedCount = result.upsertedCount;
+
+        res.status(200).json({
+          message: 'Datos importados correctamente.',
+          importedCount,
+        });
+      } catch (err) {
+        console.error('Error al insertar datos en MongoDB:', err);
+        res.status(500).send({ message: 'Error al importar datos del CSV' });
+      } finally {
+        fs.unlinkSync(filePath); // Eliminar archivo temporal
+      }
+    })
+    .on('error', (err) => {
+      console.error('Error al procesar el archivo CSV:', err);
+      res.status(500).send({ message: 'Error al procesar el archivo CSV' });
+    });
+}
