@@ -23,7 +23,7 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
 const allowedOrigins = [
-  "http://localhost:3000", // Desarrollo local
+  "http://localhost:3000/globalcar", // Desarrollo local
   "https://julio-g-marrero.github.io", // GitHub Pages raíz
   "https://julio-g-marrero.github.io/globalcar", // Ruta específica de tu aplicación
 ];
