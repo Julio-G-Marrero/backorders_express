@@ -22,17 +22,23 @@ const app = express();
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
-// Configuración de CORS
 const allowedOrigins = [
-  "http://localhost:3000", // Frontend local
-  "https://julio-g-marrero.github.io/globalcar/", // GitHub Pages
+  "http://localhost:3000", // Desarrollo local
+  "https://julio-g-marrero.github.io", // GitHub Pages raíz
+  "https://julio-g-marrero.github.io/globalcar", // Ruta específica de tu aplicación
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PATCH", "DELETE"]
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No autorizado por CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PATCH", "DELETE"],
+  credentials: true, // Habilitar envío de cookies si es necesario
 }));
-
 app.options("*", cors());
 
 // Conexión a MongoDB
