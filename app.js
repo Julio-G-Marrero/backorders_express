@@ -49,23 +49,22 @@ app.use('/users/register', createUser);
 app.post('/users/login', login);
 
 // Middleware de autenticación
-// app.use(auth);
+app.use(auth);
 
 
 // Otras rutas protegidas
 app.use('/products', routerProducts);
-app.use('/clients', routerClient);
 app.use('/users', routerUsers);
 app.use('/orders', routerOrders);
 app.use("/clients", clientRoutes);
-app.use("/productos", productRoutes);
 
-// Ruta para manejar 404
-app.get('*', (req, res) => {
-  res.status(404).send('404 Not Found');
-});
 
 // Inicia el servidor
 app.listen(PORT, () => {
   console.log(`App listening at port ${PORT}`);
+});
+
+// Ruta para manejar 404
+app.get('*', (req, res) => {
+  res.status(404).send('404 Not Found');
 });
