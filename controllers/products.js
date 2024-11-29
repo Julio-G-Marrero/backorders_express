@@ -1,5 +1,5 @@
 const Product = require('../models/products');
-import * as fs from 'fs';
+const fs = require("fs"); // Asegúrate de que esta línea esté presente y correcta
 const csv = require("csv-parser");
 
 console.log("FS Module Loaded:", !!fs);
