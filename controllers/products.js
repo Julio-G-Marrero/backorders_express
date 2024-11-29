@@ -1,4 +1,6 @@
 const Product = require('../models/products')
+const csv = require("csv-parser");
+const fs = require("fs");
 
 module.exports.getProducts = (req,res) => {
   const page = parseInt(req.query.page) || 1;
