@@ -1,7 +1,6 @@
 const routerProduct = require('express').Router();
-const upload = multer({ dest: 'uploads/' });
-
 const multer = require("multer");
+const upload = multer({ dest: 'uploads/' });
 const { getProducts,createProduct,getProductsByValues,importCsvProducto } = require('../controllers/products');
 
 routerProduct.get('/',getProducts)
