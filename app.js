@@ -3,44 +3,70 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require("cors");
 const auth = require('./middleware/auth');
-const routerOrders = require('./routes/orders')
-const routerUsers = require('./routes/users')
-const routerProducts = require('./routes/products')
-const routerClient = require('./routes/clients')
-const {createUser,login } = require('./controllers/users')
+const routerOrders = require('./routes/orders');
+const routerUsers = require('./routes/users');
+const routerProducts = require('./routes/products');
+const routerClient = require('./routes/clients');
+const { createUser, login } = require('./controllers/users');
+const multer = require("multer");
+const csv = require("csv-parser");
+const fs = require("fs");
+const Product = require('./models/products')
+const clientRoutes = require("./routes/clients");
+const productRoutes = require("./routes/products");
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Configuración de límites para body-parser
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
+// Configuración de CORS
 const allowedOrigins = [
-  "http://localhost:3000", // Utiliza el puerto en el que se sirve tu front-end
-  "https://julio-g-marrero.github.io", // Utiliza el puerto en el que se sirve tu front-end
+  "http://localhost:3000", // Frontend local
+  "https://julio-g-marrero.github.io", // GitHub Pages
 ];
 
 app.use(cors({
   origin: allowedOrigins,
-  methods:["GET","POST","PATCH","DELETE"]
+  methods: ["GET", "POST", "PATCH", "DELETE"]
 }));
-mongoose.connect('mongodb://localhost:27017/backorder',{});
+
+// Conexión a MongoDB
+mongoose.connect('mongodb://localhost:27017/backorder', {})
+  .then(() => console.log("Conectado a MongoDB"))
+  .catch(err => console.error("Error al conectar a MongoDB:", err));
 
 const { PORT = 4000 } = process.env;
 
-app.listen(PORT, () => {
-  console.log(`App listening at port ${PORT}`);
-})
+// Configuración de Multer con límite de tamaño
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 50 * 1024 * 1024 } // Límite de 50 MB
+});
 
+// Rutas públicas
 app.use('/users/register', createUser);
 app.post('/users/login', login);
 
-app.use(auth);
+// Middleware de autenticación
+// app.use(auth);
 
-app.use('/products',routerProducts)
-app.use('/clients',routerClient)
-app.use('/users',routerUsers)
-app.use('/orders',routerOrders)
 
-app.get('*', function(req, res){
+// Otras rutas protegidas
+app.use('/products', routerProducts);
+app.use('/clients', routerClient);
+app.use('/users', routerUsers);
+app.use('/orders', routerOrders);
+app.use("/clients", clientRoutes);
+app.use("/productos", productRoutes);
+
+// Ruta para manejar 404
+app.get('*', (req, res) => {
   res.status(404).send('404 Not Found');
+});
+
+// Inicia el servidor
+app.listen(PORT, () => {
+  console.log(`App listening at port ${PORT}`);
 });
