@@ -1,6 +1,6 @@
 const routerProduct = require('express').Router();
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" }); // Configuración de Multer para subir archivos
+const upload = multer({ dest: "uploads/" });
 const { getProducts,createProduct,getProductsByValues,importProductosFromCSV } = require('../controllers/products');
 
 routerProduct.get('/',getProducts)
