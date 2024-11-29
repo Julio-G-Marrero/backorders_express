@@ -1,7 +1,7 @@
 const Product = require('../models/products')
-const fs = require("fs");
+const fs = require("fs"); // Asegúrate de que esta línea esté presente
 const csv = require("csv-parser");
-
+console.log("FS Module Loaded:", !!fs);
 module.exports.getProducts = (req,res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 13;
