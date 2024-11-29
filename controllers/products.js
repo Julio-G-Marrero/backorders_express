@@ -79,7 +79,7 @@ module.exports.importCsvProducto = async (req, res) => {
         }));
 
         const result = await Product.bulkWrite(bulkOperations);
-        const importedCount = result.upsertedCount;
+        const importedCount = result.upsertedCount + result.modifiedCount;
 
         res.status(200).json({
           message: 'Datos importados correctamente.',
@@ -96,4 +96,4 @@ module.exports.importCsvProducto = async (req, res) => {
       console.error('Error al procesar el archivo CSV:', err);
       res.status(500).send({ message: 'Error al procesar el archivo CSV' });
     });
-}
+};
