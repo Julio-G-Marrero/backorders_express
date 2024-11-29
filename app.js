@@ -8,6 +8,7 @@ const routerUsers = require('./routes/users');
 const routerProducts = require('./routes/products');
 const routerClient = require('./routes/clients');
 const { createUser, login } = require('./controllers/users');
+const { updateDepartment } = require('./controllers/users'); // Controlador para la nueva ruta
 const multer = require("multer");
 const csv = require("csv-parser");
 const fs = require("fs");
@@ -48,16 +49,17 @@ const upload = multer({
 app.use('/users/register', createUser);
 app.post('/users/login', login);
 
+// **Nueva ruta pública para actualizar departamento por email**
+app.patch('/users/update-department-by-email', updateDepartment);
+
 // Middleware de autenticación
 app.use(auth);
 
-
-// Otras rutas protegidas
+// Rutas protegidas
 app.use('/products', routerProducts);
 app.use('/users', routerUsers);
 app.use('/orders', routerOrders);
 app.use("/clients", clientRoutes);
-
 
 // Inicia el servidor
 app.listen(PORT, () => {
