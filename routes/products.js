@@ -1,11 +1,13 @@
-const routerProduct = require('express').Router();
-const multer = require("multer");
+const express = require('express');
+const multer = require('multer');
+const routerProduct = express.Router();
 const upload = multer({ dest: 'uploads/' });
-const { getProducts,createProduct,getProductsByValues,importCsvProducto } = require('../controllers/products');
 
-routerProduct.get('/',getProducts)
-routerProduct.get('/search/:all',getProductsByValues)
-routerProduct.post('/',createProduct)
-routerProduct.post("/import", upload.single("csv"),importCsvProducto);
+// Importar los métodos del controlador
+const { getProducts, createProduct, getProductsByValues, importCsvProducto } = require('../controllers/products');
 
-module.exports = routerProduct
+// Definir las rutas
+routerProduct.get('/', getProducts);
+routerProduct.get('/search/:all', getProductsByValues);
+routerProduct.post('/', createProduct);
+routerProduct.post('/import', upload.single('file'), importCsvProducto);
