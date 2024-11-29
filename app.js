@@ -33,6 +33,8 @@ app.use(cors({
   methods: ["GET", "POST", "PATCH", "DELETE"]
 }));
 
+app.options("*", cors());
+
 // Conexión a MongoDB
 mongoose.connect('mongodb://localhost:27017/backorder', {})
   .then(() => console.log("Conectado a MongoDB"))
