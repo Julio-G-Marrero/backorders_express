@@ -1,6 +1,6 @@
 const routerClient = require('express').Router();
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" }); // Configuración de Multer para subir archivos
+const upload = multer({ dest: "uploads/" });
 const { getClients, createClients, getClientsByValues,importClientsFromCSV } = require('../controllers/clients')
 const auth = require('../middleware/auth');
 

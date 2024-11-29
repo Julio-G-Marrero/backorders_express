@@ -1,6 +1,6 @@
 const Product = require('../models/products')
-const csv = require("csv-parser");
 const fs = require("fs");
+const csv = require("csv-parser");
 
 module.exports.getProducts = (req,res) => {
   const page = parseInt(req.query.page) || 1;
@@ -42,7 +42,8 @@ module.exports.getProductsByValues = (req,res) => {
   .catch((err) => res.status(500).send({ message: err }));
 }
 
-module.exports.importProductosFromCSV = async (req, res) => {  if (!req.file) {
+module.exports.importProductosFromCSV = async (req, res) => {
+  if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
 
