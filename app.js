@@ -25,11 +25,11 @@ app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 // Configuración de CORS
 const allowedOrigins = [
   "http://localhost:3000", // Frontend local
-  "https://julio-g-marrero.github.io", // GitHub Pages
+  "https://julio-g-marrero.github.io/globalcar/", // GitHub Pages
 ];
 
 app.use(cors({
-  origin: "*",
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PATCH", "DELETE"]
 }));
 
