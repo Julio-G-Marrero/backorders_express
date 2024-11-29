@@ -11,3 +11,4 @@ routerProduct.get('/', getProducts);
 routerProduct.get('/search/:all', getProductsByValues);
 routerProduct.post('/', createProduct);
 routerProduct.post('/import', upload.single('file'), importCsvProducto);
+module.exports = routerProduct;
