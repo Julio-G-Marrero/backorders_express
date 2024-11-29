@@ -1,8 +1,4 @@
 const Product = require('../models/products');
-const fs = require("fs");
-const csv = require("csv-parser");
-
-console.log("FS Module Loaded:", !!fs);
 
 module.exports.getProducts = (req,res) => {
   const page = parseInt(req.query.page) || 1;
