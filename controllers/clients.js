@@ -1,5 +1,5 @@
 const Client = require('../models/clients')
-let fs = require("fs"); // Asegúrate de que esta línea esté presente
+const fs = require("fs"); // Asegúrate de que esta línea esté presente
 const csv = require("csv-parser");
 
 module.exports.getClients = (req,res) => {
