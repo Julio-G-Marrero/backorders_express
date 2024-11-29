@@ -14,6 +14,7 @@ const csv = require("csv-parser");
 const fs = require("fs");
 const clientRoutes = require("./routes/clients");
 const productRoutes = require("./routes/products");
+const admin = require('./controllers/admin')
 
 const app = express();
 
@@ -51,7 +52,7 @@ app.post('/users/login', login);
 
 // **Nueva ruta pública para actualizar departamento por email**
 app.patch('/users/update-department-by-email', updateDepartment);
-
+app.use('/admin', admin);
 // Middleware de autenticación
 app.use(auth);
 
