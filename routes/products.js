@@ -1,6 +1,5 @@
-const express = require('express');
 const multer = require('multer');
-const routerProduct = express.Router();
+const routerProduct = require('express').Router();
 const upload = multer({ dest: 'uploads/' });
 
 // Importar los métodos del controlador
