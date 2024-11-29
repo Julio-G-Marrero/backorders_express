@@ -11,7 +11,6 @@ const { createUser, login } = require('./controllers/users');
 const multer = require("multer");
 const csv = require("csv-parser");
 const fs = require("fs");
-const Product = require('./models/products')
 const clientRoutes = require("./routes/clients");
 const productRoutes = require("./routes/products");
 
