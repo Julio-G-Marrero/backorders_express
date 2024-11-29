@@ -5,7 +5,7 @@ const cors = require("cors");
 const auth = require('./middleware/auth');
 const routerOrders = require('./routes/orders');
 const routerUsers = require('./routes/users');
-const routerProducts = require('./routes/products');
+const routerProduct = require('./routes/products')
 const routerClient = require('./routes/clients');
 const { createUser, login } = require('./controllers/users');
 const { updateDepartment } = require('./controllers/users'); // Controlador para la nueva ruta
@@ -65,7 +65,7 @@ app.use('/admin', admin);
 app.use(auth);
 
 // Rutas protegidas
-app.use('/products', routerProducts);
+app.use('/products', routerProduct);
 app.use('/users', routerUsers);
 app.use('/orders', routerOrders);
 app.use("/clients", clientRoutes);
