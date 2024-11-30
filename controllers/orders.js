@@ -22,6 +22,13 @@ module.exports.getOrders = (req,res) => {
     }
 }
 
+module.exports.getAllOrders = (req,res) => {
+  Order.find({})
+  .then(orders => res.send({data: orders}))
+  .catch(() => res.status(500).send({ message: 'Error' }));
+}
+
+
 module.exports.getOrdersIndexes = (req,res) => {
     Order.countDocuments({})
     .then(count => res.send(
