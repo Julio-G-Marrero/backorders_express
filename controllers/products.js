@@ -1,6 +1,40 @@
 const Product = require('../models/products');
 const fs = require('fs');
 const csv = require('csv-parser');
+const genericPool = require('generic-pool');
+
+const factory = {
+  create: function () {
+    return new Promise((resolve, reject) => {
+      Firebird.attach(options, (err, db) => {
+        if (err) return reject(err);
+        resolve(db);
+      });
+    });
+  },
+  destroy: function (db) {
+    return new Promise((resolve) => {
+      db.detach();
+      resolve();
+    });
+  }
+};
+
+const pool = genericPool.createPool(factory, { max: 10, min: 2 });
+
+
+const Firebird = require('node-firebird');
+const options = {
+  host: 'almacennorte.ddns.net',  // Dirección IP o hostname de Firebird
+  port: 3050,                 // Puerto de Firebird
+  database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB',  // Ruta de la base de datos
+  user: 'SYSDBA',              // Usuario de Firebird
+  password: 'masterkey',
+  WireCrypt: false,
+  connectTimeout: 40000
+};
+
+
 module.exports.getProducts = (req,res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 13;
@@ -9,6 +43,55 @@ module.exports.getProducts = (req,res) => {
   .then(products => res.send({products}))
   .catch((err) => res.send({message:err}))
 }
+
+module.exports.getProductsByValuesBDNiux = (req, res) => {
+  const { search } = req.query;
+
+  if (!search) {
+    return res.status(400).json({ error: 'Por favor proporciona un valor para buscar.' });
+  }
+
+  Firebird.attach(options, function(err, db) {
+    if (err) {
+      console.error('Error al conectar con la base de datos:', err);
+      return res.status(500).json({ error: 'Error de conexión a la base de datos' });
+    }
+
+    // Consulta para buscar productos en base a DESCRIPCION o CODIGO_BARRAS, limitando a 10 resultados
+    const query = `
+      SELECT
+        CODIGO_MAT,
+        DESCRIPCION,
+        CODIGO_BARRAS,
+        PRECIO_VENTA,
+        FAMILIA,
+        SUB_FAMILIA
+      FROM CATALOGO
+      WHERE
+        UPPER(DESCRIPCION) LIKE '%' || UPPER(?) || '%'
+        OR UPPER(CODIGO_BARRAS) LIKE '%' || UPPER(?) || '%'
+      ROWS 5
+    `;
+
+    db.query(query, [search, search], function(err, result) {
+      if (err) {
+        console.error('Error al ejecutar la consulta:', err);
+        db.detach();
+        return res.status(500).json({ error: 'Error al ejecutar la consulta' });
+      }
+
+      if (result.length === 0) {
+        return res.status(404).json({ message: 'No se encontraron productos con ese criterio.' });
+      }
+
+      // Devuelve el resultado de la consulta
+      res.json({ productos: result });
+
+      // Cierra la conexión
+      db.detach();
+    });
+  });
+};
 
 module.exports.createProduct = (req, res) => {
     console.log(req.body)

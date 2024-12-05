@@ -3,11 +3,13 @@ const routerProduct = require('express').Router();
 const upload = multer({ dest: 'uploads/' });
 
 // Importar los métodos del controlador
-const { getProducts, createProduct, getProductsByValues, importCsvProducto } = require('../controllers/products');
+const { getProducts, createProduct, getProductsByValues, importCsvProducto,getProductsByValuesBDNiux } = require('../controllers/products');
 
 // Definir las rutas
 routerProduct.get('/', getProducts);
 routerProduct.get('/search/:all', getProductsByValues);
 routerProduct.post('/', createProduct);
 routerProduct.post('/import', upload.single('file'), importCsvProducto);
+routerProduct.get('/busqueda', getProductsByValuesBDNiux);
+
 module.exports = routerProduct;

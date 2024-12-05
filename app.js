@@ -6,6 +6,7 @@ const auth = require('./middleware/auth');
 const routerOrders = require('./routes/orders');
 const routerUsers = require('./routes/users');
 const routerProduct = require('./routes/products')
+const routerClient = require('./routes/clients');
 const { createUser, login } = require('./controllers/users');
 const { updateDepartment } = require('./controllers/users'); // Controlador para la nueva ruta
 const multer = require("multer");
@@ -61,7 +62,7 @@ app.post('/users/login', login);
 app.patch('/users/update-department-by-email', updateDepartment);
 app.use('/admin', admin);
 // Middleware de autenticación
-// app.use(auth);
+app.use(auth);
 
 // Rutas protegidas
 app.use('/products', routerProduct);
