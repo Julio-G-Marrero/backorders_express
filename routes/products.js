@@ -7,9 +7,10 @@ const { getProducts, createProduct, getProductsByValues, importCsvProducto,getPr
 
 // Definir las rutas
 routerProduct.get('/', getProducts);
-routerProduct.get('/search/:all', getProductsByValues);
+routerProduct.get('/search/all', getProductsByValues);
 routerProduct.post('/', createProduct);
 routerProduct.post('/import', upload.single('file'), importCsvProducto);
 routerProduct.get('/busqueda', getProductsByValuesBDNiux);
 
 module.exports = routerProduct;
+

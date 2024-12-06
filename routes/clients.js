@@ -5,7 +5,7 @@ const { getClients, createClients, getClientsByValues,importClientsFromCSV,getCl
 
 routerClient.get('/', getClients)
 routerClient.post('/', createClients)
-routerClient.get('/search/:all',getClientsByValues)
+routerClient.get('/search/all',getClientsByValues)
 routerClient.post("/import", upload.single("csv"), importClientsFromCSV);
 routerClient.get("/busqueda", getClientsByValuesBDNiux);
 

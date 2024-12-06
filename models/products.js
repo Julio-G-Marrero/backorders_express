@@ -29,6 +29,10 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: "Diverso",
   },
+  fecha_promesa_entrega: {
+    type: String,
+    default: "Sin Fecha",
+  },
 });
 
 module.exports = mongoose.model('Product', productSchema, 'products');

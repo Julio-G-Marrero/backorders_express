@@ -2,7 +2,20 @@ const Product = require('../models/products');
 const fs = require('fs');
 const csv = require('csv-parser');
 const genericPool = require('generic-pool');
+const Firebird = require('node-firebird');
 
+// Opciones de configuración de Firebird
+const options = {
+  host: 'almacennorte.ddns.net',  // Dirección IP o hostname de Firebird
+  port: 3050,                 // Puerto de Firebird
+  database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB',  // Ruta de la base de datos
+  user: 'SYSDBA',              // Usuario de Firebird
+  password: 'masterkey',
+  WireCrypt: false,
+  connectTimeout: 40000
+};
+
+// Configura el pool de conexiones con generic-pool
 const factory = {
   create: function () {
     return new Promise((resolve, reject) => {
@@ -22,28 +35,17 @@ const factory = {
 
 const pool = genericPool.createPool(factory, { max: 10, min: 2 });
 
-
-const Firebird = require('node-firebird');
-const options = {
-  host: 'almacennorte.ddns.net',  // Dirección IP o hostname de Firebird
-  port: 3050,                 // Puerto de Firebird
-  database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB',  // Ruta de la base de datos
-  user: 'SYSDBA',              // Usuario de Firebird
-  password: 'masterkey',
-  WireCrypt: false,
-  connectTimeout: 40000
-};
-
-
-module.exports.getProducts = (req,res) => {
+// Controlador para obtener productos de MongoDB
+module.exports.getProducts = (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 13;
   const startIndex = (page - 1) * limit;
   Product.find({}).skip(startIndex).limit(limit)
-  .then(products => res.send({products}))
-  .catch((err) => res.send({message:err}))
-}
+    .then(products => res.send({ products }))
+    .catch((err) => res.send({ message: err }));
+};
 
+// Controlador para obtener productos por valores desde Firebird usando el pool
 module.exports.getProductsByValuesBDNiux = (req, res) => {
   const { search } = req.query;
 
@@ -51,13 +53,7 @@ module.exports.getProductsByValuesBDNiux = (req, res) => {
     return res.status(400).json({ error: 'Por favor proporciona un valor para buscar.' });
   }
 
-  Firebird.attach(options, function(err, db) {
-    if (err) {
-      console.error('Error al conectar con la base de datos:', err);
-      return res.status(500).json({ error: 'Error de conexión a la base de datos' });
-    }
-
-    // Consulta para buscar productos en base a DESCRIPCION o CODIGO_BARRAS, limitando a 10 resultados
+  pool.acquire().then((db) => {
     const query = `
       SELECT
         CODIGO_MAT,
@@ -68,15 +64,17 @@ module.exports.getProductsByValuesBDNiux = (req, res) => {
         SUB_FAMILIA
       FROM CATALOGO
       WHERE
-        UPPER(DESCRIPCION) LIKE '%' || UPPER(?) || '%'
-        OR UPPER(CODIGO_BARRAS) LIKE '%' || UPPER(?) || '%'
-      ROWS 5
+        DESCRIPCION CONTAINING ?
+        OR CODIGO_BARRAS CONTAINING ?
+      ROWS 5;
     `;
 
-    db.query(query, [search, search], function(err, result) {
+    db.query(query, [search, search], (err, result) => {
+      // Libera la conexión al pool
+      pool.release(db);
+
       if (err) {
         console.error('Error al ejecutar la consulta:', err);
-        db.detach();
         return res.status(500).json({ error: 'Error al ejecutar la consulta' });
       }
 
@@ -86,44 +84,43 @@ module.exports.getProductsByValuesBDNiux = (req, res) => {
 
       // Devuelve el resultado de la consulta
       res.json({ productos: result });
-
-      // Cierra la conexión
-      db.detach();
     });
+  }).catch((err) => {
+    console.error('Error obteniendo conexión del pool:', err);
+    return res.status(500).json({ error: 'Error conectando a la base de datos' });
   });
 };
 
+// Controlador para crear un nuevo producto en MongoDB
 module.exports.createProduct = (req, res) => {
-    console.log(req.body)
-    Product.create({
-      codigo_barras: req.body.codigo_barras,
-      codigo_interno: req.body.codigo_interno,
-      descripcion: req.body.descripcion,
-      familia: req.body.familia,
-      sub_familia: req.body.sub_familia
-    })
+  Product.create({
+    codigo_barras: req.body.codigo_barras,
+    codigo_interno: req.body.codigo_interno,
+    descripcion: req.body.descripcion,
+    familia: req.body.familia,
+    sub_familia: req.body.sub_familia
+  })
     .then((product) => res.send(product))
-    .catch((err) => res.status(err));
+    .catch((err) => res.status(500).send({ message: err }));
 };
 
-module.exports.getProductsByValues = (req,res) => {
-  const {value} = req.query
-  const limit = parseInt(req.query.limit) || 13;
-  Product.find(
-      {
-        $or: [
-          { codigo_barras: { $regex : value, $options: 'i' } },
-          { codigo_interno: { $regex : value, $options: 'i' } },
-          { descripcion: { $regex : value, $options: 'i' } },
-          { familia: { $regex : value, $options: 'i' } },
-          { sub_familia: { $regex : value, $options: 'i' } },
-        ]
-      })
-  .limit(limit)
-  .then(products => res.send({ products }))
-  .catch((err) => res.status(500).send({ message: err }));
-}
+// Controlador para obtener productos por valores desde MongoDB
+module.exports.getProductsByValues = (req, res) => {
+  const value = String(req.query.value || '');
+  const limit = parseInt(req.query.limit) || 5;
+  Product.find({
+    $or: [
+      { codigo_barras: { $regex: value, $options: 'i' } },
+      { codigo_interno: { $regex: value, $options: 'i' } },
+      { descripcion: { $regex: value, $options: 'i' } },
+    ]
+  })
+    .limit(limit)
+    .then(products => res.send({ products }))
+    .catch((err) => res.status(500).send({ message: err }));
+};
 
+// Controlador para importar productos desde un archivo CSV a MongoDB
 module.exports.importCsvProducto = async (req, res) => {
   if (!req.file) {
     return res.status(400).send({ message: 'No se ha subido ningún archivo.' });

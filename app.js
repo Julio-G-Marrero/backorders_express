@@ -6,7 +6,6 @@ const auth = require('./middleware/auth');
 const routerOrders = require('./routes/orders');
 const routerUsers = require('./routes/users');
 const routerProduct = require('./routes/products')
-const routerClient = require('./routes/clients');
 const { createUser, login } = require('./controllers/users');
 const { updateDepartment } = require('./controllers/users'); // Controlador para la nueva ruta
 const multer = require("multer");

@@ -56,8 +56,8 @@ module.exports.createClients = (req,res) => {
 }
 
 module.exports.getClientsByValues = (req,res) => {
-  const {value} = req.query
-  const limit = parseInt(req.query.limit) || 13;
+  const value = String(req.query.value || '');
+  const limit = parseInt(req.query.limit) || 5;
   Client.find(
       {
         $or: [
@@ -113,6 +113,8 @@ module.exports.getClientsByValuesBDNiux = (req, res) => {
     return res.status(500).json({ error: 'Error conectando a la base de datos' });
   });
 };
+
+
 module.exports.importClientsFromCSV = async (req, res) => {
   if (!req.file) {
     return res.status(400).send("No se ha subido ningún archivo.");
@@ -122,44 +124,52 @@ module.exports.importClientsFromCSV = async (req, res) => {
   const clientsArray = [];
 
   try {
-    // Leer y procesar el archivo CSV
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on("data", (row) => {
-        clientsArray.push({
-          nombre: row.nombre,
-          direccion: row.direccion,
-          telefono: row.telefono,
-          email: row.email,
-        });
-      })
-      .on("end", async () => {
-        try {
-          // Filtrar duplicados y usar `upsert` para evitar registros duplicados
-          const bulkOperations = clientsArray.map((client) => ({
-            updateOne: {
-              filter: { email: client.email }, // Verificar duplicados por email
-              update: { $set: client },
-              upsert: true, // Crear si no existe
-            },
-          }));
-
-          const result = await Client.bulkWrite(bulkOperations);
-          const importedCount = result.upsertedCount;
-
-          res.status(200).json({
-            message: "Importación completada correctamente",
-            importedCount,
+    // Leer y procesar el archivo CSV de manera correcta, asegurando que se lean todos los datos antes del bulkWrite
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (row) => {
+          clientsArray.push({
+            nombre: row.nombre,
+            direccion: row.direccion,
+            telefono: row.telefono,
+            email: row.email,
           });
-        } catch (error) {
-          console.error("Error al importar datos:", error);
-          res.status(500).send("Error al importar clientes.");
-        } finally {
-          fs.unlinkSync(filePath); // Eliminar el archivo temporal
-        }
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    // Filtrar duplicados basados en campos que no sean siempre iguales ("sin definir")
+    const bulkOperations = clientsArray.map((client) => {
+      const filterCriteria = client.email && client.email !== 'sin definir'
+        ? { email: client.email }
+        : { nombre: client.nombre, telefono: client.telefono };
+
+      return {
+        updateOne: {
+          filter: filterCriteria,  // Verificar duplicados por email o combinación de nombre y teléfono
+          update: { $set: client },
+          upsert: true, // Crear si no existe
+        },
+      };
+    });
+
+    if (bulkOperations.length > 0) {
+      const result = await Client.bulkWrite(bulkOperations);
+      const importedCount = result.upsertedCount + result.modifiedCount;
+
+      res.status(200).json({
+        message: 'Importación completada correctamente.',
+        importedCount,
       });
+    } else {
+      res.status(400).json({ message: 'No se encontraron datos válidos para importar.' });
+    }
   } catch (error) {
-    console.error("Error al procesar el archivo CSV:", error);
-    res.status(500).send("Error al procesar el archivo CSV.");
+    console.error('Error al importar datos:', error);
+    res.status(500).send('Error al importar clientes.');
+  } finally {
+    fs.unlinkSync(filePath); // Eliminar archivo temporal
   }
 };
