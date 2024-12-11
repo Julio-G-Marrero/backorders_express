@@ -4,9 +4,11 @@ var validateEmail = function(email) {
   return re.test(email)
 };
 const userSchema = new mongoose.Schema({
+  googleId: {
+    type: String, unique: true, sparse: true
+  },
   nombre: {
     type:String,
-    required: true,
     minlength: 2,
     maxlength: 30,
   },
@@ -20,7 +22,6 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type:String,
-    required: true,
   },
   departament: {
     type:String,
