@@ -47,7 +47,7 @@ mongoose.connect('mongodb://localhost:27017/backorder', {})
   .then(() => console.log("Conectado a MongoDB"))
   .catch(err => console.error("Error al conectar a MongoDB:", err));
 
-const { PORT = 4000 } = process.env;
+const { PORT = 3000 } = process.env;
 
 // Configuración de Multer con límite de tamaño
 const upload = multer({
