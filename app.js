@@ -61,12 +61,12 @@ app.post('/users/login', login);
 // **Nueva ruta pública para actualizar departamento por email**
 app.patch('/users/update-department-by-email', updateDepartment);
 app.use('/admin', admin);
+app.use('/shopify', routerShopify);
 // Middleware de autenticación
 app.use(auth);
 
 // Rutas protegidas
 app.use('/products', routerProduct);
-app.use('/shopify', routerShopify);
 app.use('/users', routerUsers);
 app.use('/orders', routerOrders);
 app.use("/clients", clientRoutes);
