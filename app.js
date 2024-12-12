@@ -8,6 +8,7 @@ const routerUsers = require('./routes/users');
 const routerProduct = require('./routes/products')
 const { createUser, login } = require('./controllers/users');
 const { updateDepartment } = require('./controllers/users'); // Controlador para la nueva ruta
+const routerShopify = require('./routes/storesShopify')
 const multer = require("multer");
 const csv = require("csv-parser");
 const fs = require("fs");
@@ -65,6 +66,7 @@ app.use(auth);
 
 // Rutas protegidas
 app.use('/products', routerProduct);
+app.use('/shopify', routerShopify);
 app.use('/users', routerUsers);
 app.use('/orders', routerOrders);
 app.use("/clients", clientRoutes);
