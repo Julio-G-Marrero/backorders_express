@@ -29,14 +29,13 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: "*",
-  // origin: (origin, callback) => {
-  //   if (!origin || allowedOrigins.includes(origin)) {
-  //     callback(null, true);
-  //   } else {
-  //     callback(new Error("No autorizado por CORS"));
-  //   }
-  // },
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No autorizado por CORS"));
+    }
+  },
   methods: ["GET", "POST", "PATCH", "DELETE"],
   credentials: true, // Habilitar envío de cookies si es necesario
 }));
