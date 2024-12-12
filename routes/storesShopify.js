@@ -1,6 +1,6 @@
 const routerShopify = require('express').Router();
-const {updateIngcoInv} = require('../controllers/storesShopify')
+const {updateInvIngcoGlobal} = require('../controllers/storesShopify')
 
-routerShopify.get('/ingco-inventario', updateIngcoInv)
+routerShopify.get('/updateInventary', updateInvIngcoGlobal)
 
 module.exports = routerShopify;

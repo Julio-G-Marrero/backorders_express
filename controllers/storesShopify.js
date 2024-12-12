@@ -47,13 +47,13 @@ const fetchAllFirebirdData = async () => {
 };
 
 // Obtener ubicaciones activas desde Shopify
-const getActiveLocations = async () => {
+const getActiveLocations = async (storeName, accessToken) => {
     try {
         const response = await axios.get(
-            `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/locations.json`,
+            `https://${storeName}/admin/api/2023-01/locations.json`,
             {
                 headers: {
-                    'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
+                    'X-Shopify-Access-Token': accessToken,
                 },
             }
         );
@@ -73,13 +73,13 @@ const getActiveLocations = async () => {
 };
 
 // Obtener productos desde Shopify
-const getShopifyProducts = async () => {
+const getShopifyProducts = async (storeName, accessToken) => {
     try {
         const response = await axios.get(
-            `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/products.json?limit=250`,
+            `https://${storeName}/admin/api/2023-01/products.json?limit=250`,
             {
                 headers: {
-                    'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
+                    'X-Shopify-Access-Token': accessToken,
                 },
             }
         );
@@ -92,13 +92,13 @@ const getShopifyProducts = async () => {
 };
 
 // Actualizar inventario en Shopify con retraso para respetar el límite de llamadas
-const updateShopifyInventory = async (inventoryItemId, locationId, availableQuantity) => {
+const updateShopifyInventory = async (storeName, accessToken, inventoryItemId, locationId, availableQuantity) => {
     try {
-        // Esperar 500ms entre cada solicitud para respetar el límite de Shopify
+        // Esperar 150ms entre cada solicitud para respetar el límite de Shopify
         await sleep(150);
 
         const response = await axios.post(
-            `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/inventory_levels/set.json`,
+            `https://${storeName}/admin/api/2023-01/inventory_levels/set.json`,
             {
                 location_id: locationId,
                 inventory_item_id: inventoryItemId,
@@ -106,7 +106,7 @@ const updateShopifyInventory = async (inventoryItemId, locationId, availableQuan
             },
             {
                 headers: {
-                    'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
+                    'X-Shopify-Access-Token': accessToken,
                     'Content-Type': 'application/json',
                 },
             }
@@ -120,11 +120,11 @@ const updateShopifyInventory = async (inventoryItemId, locationId, availableQuan
 };
 
 // Sincronizar inventarios entre Firebird y Shopify
-const syncInventories = async () => {
+const syncInventories = async (storeName, accessToken) => {
     const results = [];
     try {
-        console.log('Obteniendo ubicaciones activas...');
-        const activeLocations = await getActiveLocations();
+        console.log(`Obteniendo ubicaciones activas para la tienda ${storeName}...`);
+        const activeLocations = await getActiveLocations(storeName, accessToken);
         const locationId = activeLocations[0]?.id;
 
         if (!locationId) {
@@ -134,8 +134,8 @@ const syncInventories = async () => {
         console.log('Obteniendo datos de Firebird...');
         const firebirdData = await fetchAllFirebirdData();
 
-        console.log('Obteniendo productos de Shopify...');
-        const shopifyProducts = await getShopifyProducts();
+        console.log(`Obteniendo productos de Shopify para la tienda ${storeName}...`);
+        const shopifyProducts = await getShopifyProducts(storeName, accessToken);
 
         for (const firebirdItem of firebirdData) {
             const shopifyVariant = shopifyProducts
@@ -145,6 +145,8 @@ const syncInventories = async () => {
             if (shopifyVariant) {
                 try {
                     const inventoryResult = await updateShopifyInventory(
+                        storeName,
+                        accessToken,
                         shopifyVariant.inventory_item_id,
                         locationId,
                         firebirdItem.EXISTENCIA_FINAL_CANTIDAD
@@ -178,20 +180,34 @@ const syncInventories = async () => {
     }
 };
 
+// Sincronizar inventarios para ambas tiendas
+module.exports.updateInvIngcoGlobal = async (req, res) => {
+    try {
+        console.log('Sincronizando con la primera tienda...');
+        const resultsFirstStore = await syncInventories(
+            process.env.SHOPIFY_STORE_NAME,
+            process.env.SHOPIFY_API_ACCESS_TOKEN
+        );
 
-module.exports.updateIngcoInv = async (req,res) => {
-  try {
-    const results = await syncInventories();
-    res.json({
-        status: 'success',
-        total_products_processed: results.length,
-        results,
-    });
-  } catch (error) {
-    res.status(500).json({
-        status: 'error',
-        message: 'Error durante la sincronización de inventarios',
-        details: error.message,
-    });
-  }
-}
+        console.log('Sincronizando con la segunda tienda...');
+        const resultsSecondStore = await syncInventories(
+            process.env.SHOPIFY_STORE_NAME_FSPSTORE,
+            process.env.SHOPIFY_API_ACCESS_TOKEN_FSPSTORE
+        );
+
+        res.json({
+            status: 'success',
+            total_products_processed: resultsFirstStore.length + resultsSecondStore.length,
+            results: {
+                first_store: resultsFirstStore,
+                second_store: resultsSecondStore,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Error durante la sincronización de inventarios',
+            details: error.message,
+        });
+    }
+};
