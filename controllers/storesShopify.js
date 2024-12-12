@@ -95,7 +95,7 @@ const getShopifyProducts = async (storeName, accessToken) => {
 const updateShopifyInventory = async (storeName, accessToken, inventoryItemId, locationId, availableQuantity) => {
     try {
         // Esperar 150ms entre cada solicitud para respetar el límite de Shopify
-        await sleep(150);
+        await sleep(300);
 
         const response = await axios.post(
             `https://${storeName}/admin/api/2023-01/inventory_levels/set.json`,
