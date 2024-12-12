@@ -73,7 +73,7 @@ app.use('/orders', routerOrders);
 app.use("/clients", clientRoutes);
 
 // Inicia el servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`App listening at port ${PORT}`);
 });
 server.timeout = 180000;// 3 min de esoera
