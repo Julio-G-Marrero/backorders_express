@@ -76,7 +76,7 @@ app.use("/clients", clientRoutes);
 app.listen(PORT, () => {
   console.log(`App listening at port ${PORT}`);
 });
-
+server.timeout = 180000;// 3 min de esoera
 // Ruta para manejar 404
 app.get('*', (req, res) => {
   res.status(404).send('404 Not Found');
