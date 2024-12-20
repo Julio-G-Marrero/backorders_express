@@ -24,7 +24,8 @@ const factory = {
 //Servidor Redis
 const client = redis.createClient({
   socket: {
-    host: "127.0.0.1", // Redis local
+    // host: "127.0.0.1", // Redis local
+    host: "10.138.0.2", // Redis GC
     port: 6379,
   },
 });
