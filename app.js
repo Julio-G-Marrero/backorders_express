@@ -29,14 +29,14 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: "*",
-  // (origin, callback) => {
-  //   if (!origin || allowedOrigins.includes(origin)) {
-  //     callback(null, true);
-  //   } else {
-  //     callback(new Error("No autorizado por CORS"));
-  //   }
-  // },
+  origin:
+  (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No autorizado por CORS"));
+    }
+  },
   methods: ["GET", "POST", "PATCH", "DELETE"],
   credentials: true, // Habilitar envío de cookies si es necesario
 }));
@@ -64,7 +64,7 @@ app.patch('/users/update-department-by-email', updateDepartment);
 app.use('/admin', admin);
 app.use('/shopify', routerShopify);
 // Middleware de autenticación
-// app.use(auth);
+app.use(auth);
 
 // Rutas protegidas
 app.use('/products', routerProduct);
