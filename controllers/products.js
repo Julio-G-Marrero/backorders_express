@@ -3,6 +3,28 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const genericPool = require('generic-pool');
 const Firebird = require('node-firebird');
+const redis = require("redis");
+
+//Servidor Redis
+const client = redis.createClient({
+  socket: {
+    host: "127.0.0.1", // Redis local
+    port: 6379,
+  },
+});
+
+client.on("error", (err) => {
+  console.error("Error con Redis:", err);
+});
+
+(async () => {
+  try {
+    await client.connect();
+    console.log("Conectado a Redis");
+  } catch (err) {
+    console.error("Error al conectar con Redis:", err);
+  }
+})();
 
 // Opciones de configuración de Firebird
 const options = {
@@ -46,50 +68,68 @@ module.exports.getProducts = (req, res) => {
 };
 
 // Controlador para obtener productos por valores desde Firebird usando el pool
-module.exports.getProductsByValuesBDNiux = (req, res) => {
+module.exports.getProductsByValuesBDNliux = async (req, res) => {
   const { search } = req.query;
 
+  console.log("iniciando");
+
   if (!search) {
-    return res.status(400).json({ error: 'Por favor proporciona un valor para buscar.' });
+    return res.status(400).json({ error: "Proporcione un valor para buscar." });
   }
 
-  pool.acquire().then((db) => {
-    const query = `
-      SELECT
-        CODIGO_MAT,
-        DESCRIPCION,
-        CODIGO_BARRAS,
-        PRECIO_VENTA,
-        FAMILIA,
-        SUB_FAMILIA
-      FROM CATALOGO
-      WHERE
-        DESCRIPCION CONTAINING ?
-        OR CODIGO_BARRAS CONTAINING ?
-      ROWS 5;
-    `;
+  try {
+    // Verificar si el resultado ya está en caché
+    const cachedResult = await client.get(search.toUpperCase());
+    if (cachedResult) {
+      console.log("redis");
+      return res.json({ productos: JSON.parse(cachedResult) });
+    }
 
-    db.query(query, [search, search], (err, result) => {
-      // Libera la conexión al pool
-      pool.release(db);
+    // Obtener conexión del pool de Firebird
+    const db = await pool.acquire();
 
-      if (err) {
-        console.error('Error al ejecutar la consulta:', err);
-        return res.status(500).json({ error: 'Error al ejecutar la consulta' });
-      }
+    try {
+      const query = `
+        SELECT
+          CODIGO_MAT,
+          DESCRIPCION,
+          CODIGO_BARRAS,
+          PRECIO_VENTA,
+          FAMILIA,
+          SUB_FAMILIA
+        FROM
+          CATALOGO
+        WHERE
+          UPPER(CODIGO_BARRAS) STARTING WITH UPPER(?) OR
+          UPPER(DESCRIPCION) LIKE UPPER(?)
+        ROWS 5;
+      `;
 
-      if (result.length === 0) {
-        return res.status(404).json({ message: 'No se encontraron productos con ese criterio.' });
-      }
+      db.query(query, [search.toUpperCase(), `${search.toUpperCase()}%`], async (err, result) => {
+        pool.release(db); // Liberar conexión al pool
 
-      // Devuelve el resultado de la consulta
-      res.json({ productos: result });
-    });
-  }).catch((err) => {
-    console.error('Error obteniendo conexión del pool:', err);
-    return res.status(500).json({ error: 'Error conectando a la base de datos' });
-  });
+        if (err) {
+          console.error("Error al ejecutar la consulta:", err);
+          return res.status(500).json({ error: "Error al ejecutar la consulta." });
+        }
+
+        // Guardar resultado en Redis (TTL de 345,600 segundos = 96 horas)
+        await client.setEx(search.toUpperCase(), 345600, JSON.stringify(result));
+
+        res.json({ productos: result });
+      });
+    } catch (err) {
+      pool.release(db); // Asegura liberar la conexión en caso de error
+      console.error("Error al ejecutar consulta en Firebird:", err);
+      res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
+    }
+  } catch (err) {
+    console.error("Error general:", err);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
 };
+
+
 
 // Controlador para crear un nuevo producto en MongoDB
 module.exports.createProduct = (req, res) => {

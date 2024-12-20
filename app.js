@@ -64,7 +64,7 @@ app.patch('/users/update-department-by-email', updateDepartment);
 app.use('/admin', admin);
 app.use('/shopify', routerShopify);
 // Middleware de autenticación
-app.use(auth);
+// app.use(auth);
 
 // Rutas protegidas
 app.use('/products', routerProduct);

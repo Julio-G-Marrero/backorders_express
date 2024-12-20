@@ -2,6 +2,7 @@ const Client = require('../models/clients')
 const fs = require("fs"); // Asegúrate de que esta línea esté presente
 const csv = require("csv-parser");
 const genericPool = require('generic-pool');
+const redis = require("redis");
 
 const factory = {
   create: function () {
@@ -19,6 +20,28 @@ const factory = {
     });
   }
 };
+
+//Servidor Redis
+const client = redis.createClient({
+  socket: {
+    host: "127.0.0.1", // Redis local
+    port: 6379,
+  },
+});
+
+client.on("error", (err) => {
+  console.error("Error con Redis:", err);
+});
+
+(async () => {
+  try {
+    await client.connect();
+    console.log("Conectado a Redis Clientes");
+  } catch (err) {
+    console.error("Error al conectar con Redis:", err);
+  }
+})();
+
 
 const pool = genericPool.createPool(factory, { max: 10, min: 2 });
 
@@ -72,47 +95,70 @@ module.exports.getClientsByValues = (req,res) => {
   .catch((err) => res.status(500).send({ message: err }));
 }
 
-module.exports.getClientsByValuesBDNiux = (req, res) => {
+module.exports.getClientsByValuesBDNiux = async (req, res) => {
   const { search } = req.query;
 
   if (!search) {
-    return res.status(400).json({ error: 'Por favor proporciona un valor para buscar.' });
+    return res.status(400).json({ error: "Por favor proporciona un valor para buscar." });
   }
 
-  pool.acquire().then((db) => {
-    const query = `
-      SELECT
-        NOMBRE,
-        DIRECCION,
-        TELEFONO,
-        E_MAIL
-      FROM CLIENTES
-      WHERE
-        UPPER(NOMBRE) LIKE '%' || UPPER(?) || '%'
-        OR UPPER(E_MAIL) LIKE '%' || UPPER(?) || '%'
-        OR UPPER(DIRECCION) LIKE '%' || UPPER(?) || '%'
-      ROWS 5
-    `;
+  try {
+    // Convertir búsqueda a mayúsculas para consistencia
+    const searchKey = search.toUpperCase();
 
-    db.query(query, [search, search, search], (err, result) => {
-      pool.release(db);
+    // Verificar si el resultado ya está en caché
+    const cachedResult = await client.get(searchKey);
 
-      if (err) {
-        console.error('Error al ejecutar la consulta:', err);
-        return res.status(500).json({ error: 'Error al ejecutar la consulta' });
-      }
+    if (cachedResult) {
+      console.log("Resultado obtenido desde Redis.");
+      return res.json({ clientes: JSON.parse(cachedResult) });
+    }
 
-      if (result.length === 0) {
-        return res.status(404).json({ message: 'No se encontraron clientes con ese criterio.' });
-      }
+    // Obtener conexión del pool de Firebird
+    const db = await pool.acquire();
 
-      res.json({ clientes: result });
-    });
-  }).catch((err) => {
-    console.error('Error obteniendo conexión del pool:', err);
-    return res.status(500).json({ error: 'Error conectando a la base de datos' });
-  });
+    try {
+      // Consulta optimizada con CONTAINING
+      const query = `
+        SELECT
+          NOMBRE,
+          DIRECCION,
+          TELEFONO,
+          E_MAIL
+        FROM CLIENTES
+        WHERE
+          NOMBRE CONTAINING ?
+        ROWS 5
+      `;
+
+      db.query(query, [searchKey], async (err, result) => {
+        pool.release(db); // Liberar conexión al pool
+
+        if (err) {
+          console.error("Error al ejecutar la consulta:", err);
+          return res.status(500).json({ error: "Error al ejecutar la consulta." });
+        }
+
+        if (result.length === 0) {
+          return res.status(404).json({ message: "No se encontraron clientes con ese criterio." });
+        }
+
+        // Guardar resultado en Redis con un TTL de 12 horas (43200 segundos)
+        await client.setEx(searchKey, 43200, JSON.stringify(result));
+
+        res.json({ clientes: result });
+      });
+    } catch (err) {
+      pool.release(db); // Liberar conexión en caso de error
+      console.error("Error al ejecutar consulta en Firebird:", err);
+      return res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
+    }
+  } catch (err) {
+    console.error("Error obteniendo conexión del pool:", err);
+    return res.status(500).json({ error: "Error conectando a la base de datos." });
+  }
 };
+
 
 
 module.exports.importClientsFromCSV = async (req, res) => {
