@@ -69,6 +69,8 @@ module.exports.getProducts = (req, res) => {
 };
 
 // Controlador para obtener productos por valores desde Firebird usando el pool
+const iconv = require("iconv-lite");
+
 module.exports.getProductsByValuesBDNliux = async (req, res) => {
   const { search } = req.query;
 
@@ -114,10 +116,20 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
           return res.status(500).json({ error: "Error al ejecutar la consulta." });
         }
 
-        // Guardar resultado en Redis (TTL de 345,600 segundos = 96 horas)
-        await client.setEx(search.toUpperCase(), 345600, JSON.stringify(result));
+        // Convertir los resultados a UTF-8
+        const utf8Result = result.map((row) => {
+          return Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [
+              key,
+              typeof value === "string" ? iconv.decode(Buffer.from(value, "binary"), "utf-8") : value,
+            ])
+          );
+        });
 
-        res.json({ productos: result });
+        // Guardar resultado en Redis (TTL de 345,600 segundos = 96 horas)
+        await client.setEx(search.toUpperCase(), 345600, JSON.stringify(utf8Result));
+
+        res.json({ productos: utf8Result });
       });
     } catch (err) {
       pool.release(db); // Asegura liberar la conexión en caso de error
@@ -129,6 +141,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor." });
   }
 };
+
 
 
 

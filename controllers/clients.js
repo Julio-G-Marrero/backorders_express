@@ -97,6 +97,8 @@ module.exports.getClientsByValues = (req,res) => {
   .catch((err) => res.status(500).send({ message: err }));
 }
 
+const iconv = require("iconv-lite");
+
 module.exports.getClientsByValuesBDNiux = async (req, res) => {
   const { search } = req.query;
 
@@ -145,10 +147,20 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
           return res.status(404).json({ message: "No se encontraron clientes con ese criterio." });
         }
 
-        // Guardar resultado en Redis con un TTL de 12 horas (43200 segundos)
-        await client.setEx(searchKey, 43200, JSON.stringify(result));
+        // Convertir los resultados a UTF-8
+        const utf8Result = result.map((row) => {
+          return Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [
+              key,
+              typeof value === "string" ? iconv.decode(Buffer.from(value, "binary"), "utf-8") : value,
+            ])
+          );
+        });
 
-        res.json({ clientes: result });
+        // Guardar resultado en Redis con un TTL de 12 horas (43200 segundos)
+        await client.setEx(searchKey, 43200, JSON.stringify(utf8Result));
+
+        res.json({ clientes: utf8Result });
       });
     } catch (err) {
       pool.release(db); // Liberar conexión en caso de error
@@ -160,6 +172,7 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
     return res.status(500).json({ error: "Error conectando a la base de datos." });
   }
 };
+
 
 
 
