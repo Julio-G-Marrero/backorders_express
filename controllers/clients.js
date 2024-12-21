@@ -55,6 +55,7 @@ const options = {
   user: 'SYSDBA',              // Usuario de Firebird
   password: 'masterkey',
   WireCrypt: false,
+  charset: 'UTF8',
   connectTimeout: 40000
 };
 

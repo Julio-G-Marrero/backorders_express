@@ -4,7 +4,6 @@ const csv = require('csv-parser');
 const genericPool = require('generic-pool');
 const Firebird = require('node-firebird');
 const redis = require("redis");
-
 //Servidor Redis
 const client = redis.createClient({
   socket: {
@@ -35,6 +34,7 @@ const options = {
   user: 'SYSDBA',              // Usuario de Firebird
   password: 'masterkey',
   WireCrypt: false,
+  charset: 'UTF8',
   connectTimeout: 40000
 };
 

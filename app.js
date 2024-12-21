@@ -54,6 +54,10 @@ const upload = multer({
   dest: "uploads/",
   limits: { fileSize: 50 * 1024 * 1024 } // Límite de 50 MB
 });
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 // Rutas públicas
 app.use('/users/register', createUser);
