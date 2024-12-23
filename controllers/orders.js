@@ -74,18 +74,37 @@ module.exports.getOrdersByStatusId = (req,res) => {
 
 }
 
-module.exports.getOrdersByValue = (req,res) => {
-    let id = req.query.id
-    const {value} = req.query
-    Order.find(
-        {
-          $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }]
-        })
+module.exports.getOrdersByValue = (req, res) => {
+  const { id, value, departament } = req.query; // Asegúrate de recibir 'departament' en la consulta
+
+  if (!departament) {
+    return res.status(400).send({ message: "Se requiere el departamento" });
+  }
+
+  let query = {
+    $or: [
+      { cliente_nombre: { $regex: value, $options: "i" } },
+      { cliente_email: { $regex: value, $options: "i" } },
+      { cliente_ubicacion: { $regex: value, $options: "i" } },
+    ],
+  };
+
+  // Ajusta la consulta según el departamento
+  if (departament == 2) {
+    if (!id) {
+      return res.status(400).send({ message: "Se requiere el ID para el departamento 2" });
+    }
+    query["user_id"] = id; // Filtra las órdenes por el ID del usuario
+  }
+
+  // Realiza la consulta en la base de datos
+  Order.find(query)
     .limit(7)
-    .sort({fecha_apertura : -1})
-    .then(order => res.send({ data: order }))
+    .sort({ fecha_apertura: -1 })
+    .then((order) => res.send({ data: order }))
     .catch((err) => res.status(500).send({ message: err }));
-}
+};
+
 
 module.exports.getOrdersByValueAndStatus = (req,res) => {
     const page = parseInt(req.query.page) || 1;
