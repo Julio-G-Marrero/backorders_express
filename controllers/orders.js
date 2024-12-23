@@ -76,14 +76,10 @@ module.exports.getOrdersByStatusId = (req,res) => {
 
 module.exports.getOrdersByValue = (req,res) => {
     let id = req.query.id
-    var user_id = '' + id;
     const {value} = req.query
     Order.find(
         {
-            $and: [ { user_id: { $regex :  user_id, $options: 'i' } }, {
-                $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }]
-            } ]
-
+          $or: [ { cliente_nombre: { $regex : value, $options: 'i' } }, { cliente_email: { $regex : value, $options: 'i' } },{ cliente_ubicacion: { $regex : value, $options: 'i' } }]
         })
     .limit(7)
     .sort({fecha_apertura : -1})

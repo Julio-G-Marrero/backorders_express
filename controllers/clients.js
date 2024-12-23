@@ -24,9 +24,18 @@ const factory = {
 //Servidor Redis
 const client = redis.createClient({
   socket: {
-    // host: "127.0.0.1", // Redis local
+    //host: "127.0.0.1", // Redis local
     host: "10.138.0.2", // Redis GC
     port: 6379,
+    reconnectStrategy: (retries) => {
+      if (retries > 10) {
+        console.error("No se puede reconectar a Redis después de múltiples intentos.");
+        return new Error("Redis reconnection failed");
+      }
+      console.log(`Intentando reconectar a Redis... intento #${retries}`);
+      return Math.min(retries * 100, 3000); // Retraso de reconexión (en ms)
+    },
+    password: "gm785623",
   },
 });
 
@@ -56,7 +65,7 @@ const options = {
   password: 'masterkey',
   WireCrypt: false,
   charset: 'UTF8',
-  connectTimeout: 40000
+  connectTimeout: 40000,
 };
 
 
