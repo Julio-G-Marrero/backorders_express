@@ -24,10 +24,10 @@ const fetchAllFirebirdData = async () => {
               return reject(err);
           }
           const query = `
-              SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
-              FROM EXISTENCIAS_INICIO_DIA
-              WHERE EXISTENCIA_FINAL_CANTIDAD > 0
-              ORDER BY CODIGO_BARRAS;
+            SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
+            FROM EXISTENCIAS_INICIO_DIA
+            WHERE EXISTENCIA_FINAL_CANTIDAD > 0
+            AND CODIGO_BARRAS IS NOT NULL;
           `;
           db.query(query, (err, result) => {
               db.detach();
