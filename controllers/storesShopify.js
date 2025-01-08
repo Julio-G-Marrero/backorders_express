@@ -89,7 +89,7 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
       }
   }
 
-  console.timeEnd('Tiempo total de consulta Firebird');
+  console.timeEnd(`Tiempo total de consulta Firebird - ${Date.now()}`);
   console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
   return results;
 };
