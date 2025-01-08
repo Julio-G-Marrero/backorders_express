@@ -1,6 +1,6 @@
 const routerShopify = require('express').Router();
-const {updateInvIngcoGlobal} = require('../controllers/storesShopify')
+const {fetchAllFirebirdData} = require('../controllers/storesShopify')
 
-routerShopify.get('/updateInventary', updateInvIngcoGlobal)
+routerShopify.get('/updateInventary', fetchAllFirebirdData)
 
 module.exports = routerShopify;
