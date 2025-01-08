@@ -15,76 +15,51 @@ const options = {
 };
 
 // Obtener datos de Firebird
-const fetchAllFirebirdData = async () => {
-  console.log('Iniciando consulta a Firebird...');
+const fetchAllFirebirdData = async (batchSize = 500) => {
+  console.log('Iniciando consulta por lotes a Firebird...');
+  let start = 1;
+  let results = [];
+  let hasMore = true;
 
-  // Generar una etiqueta única para el cronómetro
-  const timerLabel = `Tiempo de consulta a Firebird - ${Date.now()}`;
-  console.time(timerLabel); // Inicia el cronómetro con la etiqueta única
-
-  return new Promise((resolve, reject) => {
-      Firebird.attach(options, (err, db) => {
-          if (err) {
-              console.error('Error al conectar a Firebird:', err);
-              console.timeEnd(timerLabel); // Finaliza el cronómetro
-              return reject(err);
-          }
-
-          const query = `
-              SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
-              FROM EXISTENCIAS_INICIO_DIA
-              WHERE EXISTENCIA_FINAL_CANTIDAD > 0
-              ROWS 1 TO 50;
-          `;
-
-          db.query(query, (err, result) => {
-              db.detach(); // Desconecta la base de datos
+  while (hasMore) {
+      console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
+      const batch = await new Promise((resolve, reject) => {
+          Firebird.attach(options, (err, db) => {
               if (err) {
-                  console.error('Error ejecutando consulta:', err);
-                  console.timeEnd(timerLabel); // Finaliza el cronómetro
+                  console.error('Error al conectar a Firebird:', err);
                   return reject(err);
               }
 
-              console.timeEnd(timerLabel); // Finaliza el cronómetro
-              console.log('Consulta exitosa, resultados obtenidos:');
-              resolve(result);
+              const query = `
+                  SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
+                  FROM EXISTENCIAS_INICIO_DIA
+                  WHERE EXISTENCIA_FINAL_CANTIDAD > 0
+                  ROWS ${start} TO ${start + batchSize - 1};
+              `;
+
+              db.query(query, (err, result) => {
+                  db.detach();
+                  if (err) {
+                      console.error('Error ejecutando consulta:', err);
+                      return reject(err);
+                  }
+
+                  resolve(result);
+              });
           });
       });
-  });
+
+      if (batch.length === 0) {
+          hasMore = false;
+      } else {
+          results = results.concat(batch);
+          start += batchSize;
+      }
+  }
+
+  console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
+  return results;
 };
-
-// Llamada de prueba para verificar su funcionamiento
-(async () => {
-  try {
-      const data = await fetchAllFirebirdData();
-      console.log('Datos obtenidos de Firebird:', data);
-  } catch (error) {
-      console.error('Error al obtener datos de Firebird:', error);
-  }
-})();
-
-
-// Llamada de prueba para verificar su funcionamiento
-(async () => {
-  try {
-      const data = await fetchAllFirebirdData();
-      console.log('Datos obtenidos de Firebird:', data);
-  } catch (error) {
-      console.error('Error al obtener datos de Firebird:', error);
-  }
-})();
-
-// Llamada de prueba para verificar su funcionamiento
-(async () => {
-  try {
-      const data = await fetchAllFirebirdData();
-      console.log('Datos obtenidos de Firebird:', data);
-  } catch (error) {
-      console.error('Error al obtener datos de Firebird:', error);
-  }
-})();
-
-
 
 // Función para esperar
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
