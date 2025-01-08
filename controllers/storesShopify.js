@@ -17,12 +17,18 @@ const options = {
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async (batchSize = 500) => {
   console.log('Iniciando consulta por lotes a Firebird...');
-  let start = 1;
+  let start = 1; // Inicializa correctamente
   let results = [];
   let hasMore = true;
 
   while (hasMore) {
       console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
+
+      // Asegurarse de que los valores sean válidos
+      if (isNaN(start) || isNaN(batchSize) || batchSize <= 0) {
+          throw new Error('Valores inválidos para el rango de consulta: start o batchSize');
+      }
+
       const batch = await new Promise((resolve, reject) => {
           Firebird.attach(options, (err, db) => {
               if (err) {
@@ -53,7 +59,7 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
           hasMore = false;
       } else {
           results = results.concat(batch);
-          start += batchSize;
+          start += batchSize; // Incrementa correctamente para el siguiente lote
       }
   }
 
