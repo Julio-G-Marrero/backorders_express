@@ -27,7 +27,7 @@ const fetchAllFirebirdData = async () => {
             SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
             FROM EXISTENCIAS_INICIO_DIA
             WHERE EXISTENCIA_FINAL_CANTIDAD > 0
-            AND CODIGO_BARRAS IS NOT NULL;
+            ROWS 1 TO 50;
           `;
           db.query(query, (err, result) => {
               db.detach();
