@@ -16,21 +16,17 @@ const options = {
 
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async (batchSize = 500) => {
-  if (!Number.isInteger(batchSize) || batchSize <= 0) {
-      throw new Error(`Valor inválido para batchSize: ${batchSize}`);
-  }
-
   console.log('Iniciando consulta por lotes a Firebird...');
-  let start = 1; // Inicializa correctamente
+  let start = 1; // Inicializamos el inicio del rango
   let results = [];
   let hasMore = true;
 
   while (hasMore) {
       console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
 
-      // Asegúrate de que los valores sean válidos antes de usarlos
-      if (!Number.isInteger(start) || start <= 0) {
-          throw new Error(`Valor inválido para start: ${start}`);
+      // Validamos que los valores sean válidos
+      if (!Number.isInteger(start) || !Number.isInteger(batchSize) || batchSize <= 0) {
+          throw new Error('Valores inválidos para el rango de consulta: start o batchSize');
       }
 
       const batch = await new Promise((resolve, reject) => {
@@ -63,13 +59,14 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
           hasMore = false;
       } else {
           results = results.concat(batch);
-          start += batchSize; // Incrementa correctamente para el siguiente lote
+          start += batchSize; // Incrementamos el rango para el siguiente lote
       }
   }
 
   console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
   return results;
 };
+
 
 // Función para esperar
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
