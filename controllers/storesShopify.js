@@ -11,7 +11,52 @@ const options = {
     user: 'SYSDBA',
     password: 'masterkey',
     WireCrypt: false,
-    connectTimeout: 40000,
+    connectTimeout: 60000, // 60 segundos
+};
+
+const fetchBatchFromFirebird = async (start, batchSize) => {
+  const query = `
+      SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
+      FROM EXISTENCIAS_INICIO_DIA
+      WHERE EXISTENCIA_FINAL_CANTIDAD > 0
+      ROWS ${start} TO ${start + batchSize - 1};
+  `;
+
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  while (attempts < maxAttempts) {
+      try {
+          return await new Promise((resolve, reject) => {
+              Firebird.attach(options, (err, db) => {
+                  if (err) {
+                      console.error('Error al conectar a Firebird:', err);
+                      return reject(err);
+                  }
+
+                  db.query(query, (err, result) => {
+                      db.detach();
+                      if (err) {
+                          console.error('Error ejecutando consulta:', err);
+                          return reject(err);
+                      }
+
+                      resolve(result);
+                  });
+              });
+          });
+      } catch (error) {
+          attempts++;
+          console.error(`Error en el intento ${attempts} de consulta:`, error);
+
+          if (attempts >= maxAttempts) {
+              throw new Error('Se alcanzó el número máximo de intentos para conectar con Firebird.');
+          }
+
+          console.log('Reintentando la conexión con Firebird...');
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Espera antes de reintentar
+      }
+  }
 };
 
 // Obtener datos de Firebird
@@ -21,54 +66,27 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
   let results = [];
   let hasMore = true;
 
-  // Inicia el cronómetro
-  console.time('Tiempo total de consulta');
+  console.time('Tiempo total de consulta Firebird');
 
   while (hasMore) {
       console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
 
-      // Validamos que los valores sean válidos
-      if (!Number.isInteger(start) || !Number.isInteger(batchSize) || batchSize <= 0) {
-          throw new Error('Valores inválidos para el rango de consulta: start o batchSize');
-      }
+      try {
+          const batch = await fetchBatchFromFirebird(start, batchSize);
 
-      const batch = await new Promise((resolve, reject) => {
-          Firebird.attach(options, (err, db) => {
-              if (err) {
-                  console.error('Error al conectar a Firebird:', err);
-                  return reject(err);
-              }
-
-              const query = `
-                  SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
-                  FROM EXISTENCIAS_INICIO_DIA
-                  WHERE EXISTENCIA_FINAL_CANTIDAD > 0
-                  ROWS ${start} TO ${start + batchSize - 1};
-              `;
-
-              db.query(query, (err, result) => {
-                  db.detach();
-                  if (err) {
-                      console.error('Error ejecutando consulta:', err);
-                      return reject(err);
-                  }
-
-                  resolve(result);
-              });
-          });
-      });
-
-      if (batch.length === 0) {
-          hasMore = false;
-      } else {
-          results = results.concat(batch);
-          start += batchSize; // Incrementamos el rango para el siguiente lote
+          if (batch.length === 0) {
+              hasMore = false;
+          } else {
+              results = results.concat(batch);
+              start += batchSize; // Incrementamos el rango para el siguiente lote
+          }
+      } catch (error) {
+          console.error('Error durante la consulta por lotes:', error);
+          break;
       }
   }
 
-  // Finaliza el cronómetro y registra el tiempo total
-  console.timeEnd('Tiempo total de consulta');
-
+  console.timeEnd('Tiempo total de consulta Firebird');
   console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
   return results;
 };
