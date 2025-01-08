@@ -16,31 +16,49 @@ const options = {
 
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async () => {
-  console.log('Consultando datos desde Firebird...');
+  console.log('Iniciando consulta a Firebird...');
+  console.time('Tiempo de consulta a Firebird'); // Inicia el cronómetro
+
   return new Promise((resolve, reject) => {
       Firebird.attach(options, (err, db) => {
           if (err) {
               console.error('Error al conectar a Firebird:', err);
+              console.timeEnd('Tiempo de consulta a Firebird'); // Finaliza el cronómetro en caso de error
               return reject(err);
           }
+
           const query = `
               SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
               FROM EXISTENCIAS_INICIO_DIA
               WHERE EXISTENCIA_FINAL_CANTIDAD > 0
               ROWS 1 TO 50;
           `;
+
           db.query(query, (err, result) => {
-              db.detach();
+              db.detach(); // Desconecta la base de datos
               if (err) {
                   console.error('Error ejecutando consulta:', err);
+                  console.timeEnd('Tiempo de consulta a Firebird'); // Finaliza el cronómetro en caso de error
                   return reject(err);
               }
+
+              console.timeEnd('Tiempo de consulta a Firebird'); // Finaliza el cronómetro
               console.log('Consulta exitosa, resultados obtenidos:', result);
               resolve(result);
           });
       });
   });
 };
+
+// Llamada de prueba para verificar su funcionamiento
+(async () => {
+  try {
+      const data = await fetchAllFirebirdData();
+      console.log('Datos obtenidos de Firebird:', data);
+  } catch (error) {
+      console.error('Error al obtener datos de Firebird:', error);
+  }
+})();
 
 // Llamada de prueba para verificar su funcionamiento
 (async () => {
