@@ -16,6 +16,7 @@ const options = {
 
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async () => {
+  console.log('consultado')
   return new Promise((resolve, reject) => {
       Firebird.attach(options, (err, db) => {
           if (err) {
