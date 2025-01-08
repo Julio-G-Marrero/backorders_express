@@ -16,7 +16,7 @@ const options = {
 
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async () => {
-  console.log('consultado')
+  console.log('Consultando datos desde Firebird...');
   return new Promise((resolve, reject) => {
       Firebird.attach(options, (err, db) => {
           if (err) {
@@ -24,10 +24,10 @@ const fetchAllFirebirdData = async () => {
               return reject(err);
           }
           const query = `
-            SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
-            FROM EXISTENCIAS_INICIO_DIA
-            WHERE EXISTENCIA_FINAL_CANTIDAD > 0
-            ROWS 1 TO 50;
+              SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
+              FROM EXISTENCIAS_INICIO_DIA
+              WHERE EXISTENCIA_FINAL_CANTIDAD > 0
+              ROWS 1 TO 50;
           `;
           db.query(query, (err, result) => {
               db.detach();
@@ -35,11 +35,23 @@ const fetchAllFirebirdData = async () => {
                   console.error('Error ejecutando consulta:', err);
                   return reject(err);
               }
+              console.log('Consulta exitosa, resultados obtenidos:', result);
               resolve(result);
           });
       });
   });
 };
+
+// Llamada de prueba para verificar su funcionamiento
+(async () => {
+  try {
+      const data = await fetchAllFirebirdData();
+      console.log('Datos obtenidos de Firebird:', data);
+  } catch (error) {
+      console.error('Error al obtener datos de Firebird:', error);
+  }
+})();
+
 
 
 // Función para esperar
