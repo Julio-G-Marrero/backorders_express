@@ -17,13 +17,16 @@ const options = {
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async () => {
   console.log('Iniciando consulta a Firebird...');
-  console.time('Tiempo de consulta a Firebird'); // Inicia el cronómetro
+
+  // Generar una etiqueta única para el cronómetro
+  const timerLabel = `Tiempo de consulta a Firebird - ${Date.now()}`;
+  console.time(timerLabel); // Inicia el cronómetro con la etiqueta única
 
   return new Promise((resolve, reject) => {
       Firebird.attach(options, (err, db) => {
           if (err) {
               console.error('Error al conectar a Firebird:', err);
-              console.timeEnd('Tiempo de consulta a Firebird'); // Finaliza el cronómetro en caso de error
+              console.timeEnd(timerLabel); // Finaliza el cronómetro
               return reject(err);
           }
 
@@ -38,17 +41,28 @@ const fetchAllFirebirdData = async () => {
               db.detach(); // Desconecta la base de datos
               if (err) {
                   console.error('Error ejecutando consulta:', err);
-                  console.timeEnd('Tiempo de consulta a Firebird'); // Finaliza el cronómetro en caso de error
+                  console.timeEnd(timerLabel); // Finaliza el cronómetro
                   return reject(err);
               }
 
-              console.timeEnd('Tiempo de consulta a Firebird'); // Finaliza el cronómetro
-              console.log('Consulta exitosa, resultados obtenidos:', result);
+              console.timeEnd(timerLabel); // Finaliza el cronómetro
+              console.log('Consulta exitosa, resultados obtenidos:');
               resolve(result);
           });
       });
   });
 };
+
+// Llamada de prueba para verificar su funcionamiento
+(async () => {
+  try {
+      const data = await fetchAllFirebirdData();
+      console.log('Datos obtenidos de Firebird:', data);
+  } catch (error) {
+      console.error('Error al obtener datos de Firebird:', error);
+  }
+})();
+
 
 // Llamada de prueba para verificar su funcionamiento
 (async () => {
