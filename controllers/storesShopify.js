@@ -65,8 +65,9 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
   let start = 1; // Inicializamos el inicio del rango
   let results = [];
   let hasMore = true;
+  const label = `Tiempo total de consulta Firebird - ${Date.now()}`;
 
-  console.time('Tiempo total de consulta Firebird');
+  console.time(label);
 
   while (hasMore) {
       console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
