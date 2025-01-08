@@ -16,6 +16,10 @@ const options = {
 
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async (batchSize = 500) => {
+  if (!Number.isInteger(batchSize) || batchSize <= 0) {
+      throw new Error(`Valor inválido para batchSize: ${batchSize}`);
+  }
+
   console.log('Iniciando consulta por lotes a Firebird...');
   let start = 1; // Inicializa correctamente
   let results = [];
@@ -24,9 +28,9 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
   while (hasMore) {
       console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
 
-      // Asegurarse de que los valores sean válidos
-      if (isNaN(start) || isNaN(batchSize) || batchSize <= 0) {
-          throw new Error('Valores inválidos para el rango de consulta: start o batchSize');
+      // Asegúrate de que los valores sean válidos antes de usarlos
+      if (!Number.isInteger(start) || start <= 0) {
+          throw new Error(`Valor inválido para start: ${start}`);
       }
 
       const batch = await new Promise((resolve, reject) => {
