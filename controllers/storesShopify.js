@@ -21,9 +21,6 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
   let results = [];
   let hasMore = true;
 
-  // Inicia el cronómetro
-  console.time('Tiempo total de consulta');
-
   while (hasMore) {
       console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
 
@@ -66,12 +63,10 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
       }
   }
 
-  // Finaliza el cronómetro y registra el tiempo total
-  console.timeEnd('Tiempo total de consulta');
-
   console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
   return results;
 };
+
 
 // Función para esperar
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
