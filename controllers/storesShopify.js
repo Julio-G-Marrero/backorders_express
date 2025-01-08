@@ -16,6 +16,7 @@ const options = {
 
 const fetchBatchFromFirebird = async (start, batchSize) => {
   const query = `
+      SET PLAN ON;
       SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
       FROM EXISTENCIAS_INICIO_DIA
       WHERE EXISTENCIA_FINAL_CANTIDAD > 0
@@ -41,6 +42,11 @@ const fetchBatchFromFirebird = async (start, batchSize) => {
                           return reject(err);
                       }
 
+                      // Registrar el plan de ejecución en la consola
+                      if (result.plan) {
+                          console.log('Plan de ejecución:', result.plan);
+                      }
+
                       resolve(result);
                   });
               });
@@ -58,6 +64,7 @@ const fetchBatchFromFirebird = async (start, batchSize) => {
       }
   }
 };
+
 
 // Obtener datos de Firebird
 const fetchAllFirebirdData = async (batchSize = 500) => {
