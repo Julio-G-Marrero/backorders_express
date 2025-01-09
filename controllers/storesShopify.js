@@ -1,143 +1,99 @@
 const axios = require('axios');
-require('dotenv').config();
 const Firebird = require('node-firebird');
-const fs = require('fs');
 
-// Opciones de configuración de Firebird
-const options = {
+// Configuración de Firebird
+const firebirdOptions = {
     host: 'almacennorte.ddns.net',
     port: 3050,
     database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB',
     user: 'SYSDBA',
     password: 'masterkey',
     WireCrypt: false,
-    connectTimeout: 60000, // 60 segundos
+    connectTimeout: 40000,
 };
 
-const fetchBatchFromFirebird = async (start, batchSize) => {
-  const query = `
-      SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
-      FROM EXISTENCIAS_INICIO_DIA
-      WHERE EXISTENCIA_FINAL_CANTIDAD > 0
-      ROWS ${start} TO ${start + batchSize - 1};
-  `;
-
-  let attempts = 0;
-  const maxAttempts = 3;
-
-  while (attempts < maxAttempts) {
-      try {
-          return await new Promise((resolve, reject) => {
-              Firebird.attach(options, (err, db) => {
-                  if (err) {
-                      console.error('Error al conectar a Firebird:', err);
-                      return reject(err);
-                  }
-
-                  db.query(query, (err, result) => {
-                      db.detach();
-                      if (err) {
-                          console.error('Error ejecutando consulta:', err);
-                          return reject(err);
-                      }
-
-                      resolve(result);
-                  });
-              });
-          });
-      } catch (error) {
-          attempts++;
-          console.error(`Error en el intento ${attempts} de consulta:`, error);
-
-          if (attempts >= maxAttempts) {
-              throw new Error('Se alcanzó el número máximo de intentos para conectar con Firebird.');
-          }
-
-          console.log('Reintentando la conexión con Firebird...');
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Espera antes de reintentar
-      }
-  }
-};
-
-
-
-// Obtener datos de Firebird
+// Obtener datos de Firebird por lotes
 const fetchAllFirebirdData = async (batchSize = 500) => {
-  console.log('Iniciando consulta por lotes a Firebird...');
-  let start = 1; // Inicializamos el inicio del rango
-  let results = [];
-  let hasMore = true;
-  const label = `Tiempo total de consulta Firebird - ${Date.now()}`;
+    console.log('Iniciando consulta por lotes a Firebird...');
+    let start = 1;
+    let results = [];
+    let hasMore = true;
 
-  console.time(label);
+    while (hasMore) {
+        console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
+        const query = `
+            SELECT CODIGO_BARRAS, EXISTENCIA_FINAL_CANTIDAD
+            FROM EXISTENCIAS_INICIO_DIA
+            WHERE EXISTENCIA_FINAL_CANTIDAD > 0
+            ROWS ${start} TO ${start + batchSize - 1};
+        `;
 
-  while (hasMore) {
-      console.log(`Consultando registros ${start} a ${start + batchSize - 1}...`);
+        const batch = await new Promise((resolve, reject) => {
+            Firebird.attach(firebirdOptions, (err, db) => {
+                if (err) {
+                    console.error('Error al conectar a Firebird:', err);
+                    return reject(err);
+                }
 
-      try {
-          const batch = await fetchBatchFromFirebird(start, batchSize);
+                db.query(query, (err, result) => {
+                    db.detach();
+                    if (err) {
+                        console.error('Error ejecutando consulta:', err);
+                        return reject(err);
+                    }
+                    resolve(result);
+                });
+            });
+        });
 
-          if (batch.length === 0) {
-              hasMore = false;
-          } else {
-              results = results.concat(batch);
-              start += batchSize; // Incrementamos el rango para el siguiente lote
-          }
-      } catch (error) {
-          console.error('Error durante la consulta por lotes:', error);
-          break;
-      }
-  }
-
-  console.timeEnd(`Tiempo total de consulta Firebird - ${Date.now()}`);
-  console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
-  return results;
-};
-
-// Función para esperar
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Respaldar productos de Shopify
-const backupShopifyProducts = async (storeName, accessToken) => {
-    try {
-        const response = await axios.get(
-            `https://${storeName}/admin/api/2023-01/products.json?limit=250`,
-            {
-                headers: { 'X-Shopify-Access-Token': accessToken },
-            }
-        );
-        const products = response.data.products;
-        fs.writeFileSync(`backup_${storeName}.json`, JSON.stringify(products, null, 2));
-        console.log(`Backup completado para la tienda ${storeName}`);
-    } catch (error) {
-        console.error('Error al respaldar productos:', error.response?.data || error.message);
-        throw error;
+        if (batch.length === 0) {
+            hasMore = false;
+        } else {
+            results = results.concat(batch);
+            start += batchSize;
+        }
     }
+
+    console.log(`Consulta finalizada, total de registros obtenidos: ${results.length}`);
+    return results;
 };
 
 // Obtener productos de Shopify
-const getShopifyProducts = async (storeName, accessToken) => {
+const fetchShopifyProducts = async () => {
     try {
         const response = await axios.get(
-            `https://${storeName}/admin/api/2023-01/products.json?limit=250`,
+            `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/products.json?limit=250`,
             {
-                headers: { 'X-Shopify-Access-Token': accessToken },
+                headers: {
+                    'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
+                },
             }
         );
-        return response.data.products;
+
+        // Aplanar variantes de productos
+        const products = response.data.products.flatMap(product =>
+            product.variants.map(variant => ({
+                id: variant.id,
+                inventory_item_id: variant.inventory_item_id,
+                barcode: variant.barcode,
+                title: product.title,
+                inventory_quantity: variant.inventory_quantity,
+            }))
+        );
+
+        console.log(`Productos obtenidos de Shopify: ${products.length}`);
+        return products;
     } catch (error) {
-        console.error('Error al obtener productos:', error.response?.data || error.message);
+        console.error('Error al obtener productos de Shopify:', error.response?.data || error.message);
         throw error;
     }
 };
 
 // Actualizar inventario en Shopify
-const updateShopifyInventory = async (storeName, accessToken, inventoryItemId, locationId, availableQuantity) => {
+const updateShopifyInventory = async (inventoryItemId, locationId, availableQuantity) => {
     try {
-        // Respetar el límite de Shopify
-        await sleep(300);
         const response = await axios.post(
-            `https://${storeName}/admin/api/2023-01/inventory_levels/set.json`,
+            `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/inventory_levels/set.json`,
             {
                 location_id: locationId,
                 inventory_item_id: inventoryItemId,
@@ -145,47 +101,93 @@ const updateShopifyInventory = async (storeName, accessToken, inventoryItemId, l
             },
             {
                 headers: {
-                    'X-Shopify-Access-Token': accessToken,
-                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
                 },
             }
         );
+
+        console.log(`Inventario actualizado para ${inventoryItemId}: ${availableQuantity}`);
         return response.data;
     } catch (error) {
-        console.error('Error al actualizar inventario:', error.response?.data || error.message);
+        console.error('Error al actualizar inventario en Shopify:', error.response?.data || error.message);
         throw error;
     }
 };
 
-// Procesar Webhook de Shopify
-const processShopifyWebhook = async (req, res) => {
-    try {
-        const { storeName, accessToken } = process.env;
-        const { product_id, inventory_item_id } = req.body;
+// Sincronizar inventarios entre Firebird y Shopify
+const syncFirebirdWithShopify = async () => {
+  try {
+      console.log('Iniciando sincronización...');
+      const startTime = Date.now();
 
-        console.log(`Recibido webhook para producto: ${product_id}`);
+      // Paso 1: Obtener datos de Firebird
+      const firebirdData = await fetchAllFirebirdData(500);
 
-        // Obtener datos de Firebird
-        const firebirdData = await fetchAllFirebirdData();
-        const firebirdItem = firebirdData.find(item => item.CODIGO_BARRAS === req.body.barcode);
+      // Paso 2: Obtener datos de Shopify
+      const shopifyProducts = await fetchShopifyProducts();
 
-        if (firebirdItem) {
-            console.log(`Sincronizando inventario para producto: ${product_id}`);
-            await updateShopifyInventory(storeName, accessToken, inventory_item_id, locationId, firebirdItem.EXISTENCIA_FINAL_CANTIDAD);
-            res.status(200).send('Inventario sincronizado');
-        } else {
-            console.log(`Producto con código de barras ${req.body.barcode} no encontrado en Firebird`);
-            res.status(404).send('Producto no encontrado en Firebird');
-        }
-    } catch (error) {
-        console.error('Error procesando webhook:', error.message);
-        res.status(500).send('Error procesando webhook');
-    }
+      // Paso 3: Cruce y actualización
+      let totalProcessed = 0;
+      let totalUpdated = 0;
+      let notFound = [];
+      let updateErrors = [];
+
+      const updates = [];
+
+      for (const firebirdItem of firebirdData) {
+          totalProcessed++;
+          const shopifyProduct = shopifyProducts.find(
+              product => product.barcode === firebirdItem.CODIGO_BARRAS
+          );
+
+          if (shopifyProduct) {
+              // Intentar actualizar el inventario
+              try {
+                  updates.push(
+                      updateShopifyInventory(
+                          shopifyProduct.inventory_item_id,
+                          process.env.SHOPIFY_LOCATION_ID,
+                          firebirdItem.EXISTENCIA_FINAL_CANTIDAD
+                      )
+                  );
+                  totalUpdated++;
+              } catch (error) {
+                  console.error(`Error actualizando producto ${shopifyProduct.barcode}:`, error.message);
+                  updateErrors.push({ barcode: shopifyProduct.barcode, error: error.message });
+              }
+          } else {
+              // Producto no encontrado en Shopify
+              notFound.push({ barcode: firebirdItem.CODIGO_BARRAS });
+          }
+      }
+
+      // Esperar a que todas las actualizaciones se completen
+      await Promise.all(updates);
+
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000; // Tiempo total en segundos
+
+      console.log('Sincronización completada.');
+
+      return {
+          status: 'success',
+          totalProcessed,
+          totalUpdated,
+          notFoundCount: notFound.length,
+          updateErrorCount: updateErrors.length,
+          durationInSeconds: duration,
+          notFound,
+          updateErrors,
+      };
+  } catch (error) {
+      console.error('Error durante la sincronización:', error.message);
+      throw error;
+  }
 };
 
-// Exportar funciones
 module.exports = {
-    processShopifyWebhook,
-    backupShopifyProducts,
     fetchAllFirebirdData,
+    fetchShopifyProducts,
+    updateShopifyInventory,
+    syncFirebirdWithShopify,
 };
