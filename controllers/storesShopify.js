@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Firebird = require('node-firebird');
+let lastSyncResults = null;
 
 // Configuración de Firebird
 const firebirdOptions = {
@@ -10,6 +11,14 @@ const firebirdOptions = {
     password: 'masterkey',
     WireCrypt: false,
     connectTimeout: 40000,
+};
+const saveLastSyncResults = (results) => {
+  lastSyncResults = results;
+};
+
+// Obtener los últimos resultados de sincronización
+const getLastSyncResults = () => {
+  return lastSyncResults;
 };
 
 // Obtener datos de Firebird por lotes
@@ -192,4 +201,6 @@ module.exports = {
     fetchAllShopifyProducts,
     updateShopifyInventory,
     syncFirebirdWithShopify,
+    saveLastSyncResults,
+    getLastSyncResults,
 };

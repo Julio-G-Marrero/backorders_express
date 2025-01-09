@@ -1,8 +1,20 @@
 const routerShopify = require('express').Router();
-const { syncFirebirdWithShopify } = require('../controllers/storesShopify');
+const cron = require('node-cron');
+
+const { syncFirebirdWithShopify,saveLastSyncResults, getLastSyncResults, } = require('../controllers/storesShopify');
 
 // Definimos la ruta para actualizar el inventario
 let isSyncInProgress = false;
+cron.schedule('0 */2 * * *', async () => {
+  console.log('Iniciando sincronización automática...');
+  try {
+      const result = await syncFirebirdWithShopify();
+      saveLastSyncResults(result);
+      console.log('Sincronización completada.');
+  } catch (error) {
+      console.error('Error en la sincronización automática:', error.message);
+  }
+});
 
 routerShopify.get('/syncInventory', async (req, res) => {
     if (isSyncInProgress) {
@@ -21,6 +33,14 @@ routerShopify.get('/syncInventory', async (req, res) => {
         isSyncInProgress = false; // Liberar el bloqueo
         console.log(`Sincronización finalizada a las: ${new Date().toISOString()}`);
     }
+});
+
+routerShopify.get('/lastSyncResults', (req, res) => {
+  const lastResults = getLastSyncResults();
+  if (!lastResults) {
+      return res.status(404).json({ message: 'No hay resultados disponibles.' });
+  }
+  res.json(lastResults);
 });
 
 module.exports = routerShopify;
