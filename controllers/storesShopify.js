@@ -95,27 +95,34 @@ const fetchAllShopifyProducts = async () => {
 
 // Actualizar inventario en Shopify
 const updateShopifyInventory = async (inventoryItemId, locationId, availableQuantity) => {
-    try {
-        const response = await axios.post(
-            `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/inventory_levels/set.json`,
-            {
-                location_id: locationId,
-                inventory_item_id: inventoryItemId,
-                available: availableQuantity,
-            },
-            {
-                headers: {
-                    'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
-                },
-            }
-        );
+  try {
+      // Pausa para respetar el límite de Shopify
+      await new Promise(resolve => setTimeout(resolve, 500)); // 500 ms entre cada solicitud
 
-        console.log(`Inventario actualizado para ${inventoryItemId}: ${availableQuantity}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error al actualizar inventario en Shopify:', error.response?.data || error.message);
-        throw error;
-    }
+      const response = await axios.post(
+          `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/inventory_levels/set.json`,
+          {
+              location_id: locationId,
+              inventory_item_id: inventoryItemId,
+              available: availableQuantity,
+          },
+          {
+              headers: {
+                  'X-Shopify-Access-Token': process.env.SHOPIFY_API_ACCESS_TOKEN,
+                  'Content-Type': 'application/json',
+              },
+          }
+      );
+
+      console.log(`Inventario actualizado para ${inventoryItemId}: ${availableQuantity}`);
+      return response.data;
+  } catch (error) {
+      console.error(
+          `Error actualizando producto ${inventoryItemId}:`,
+          error.response?.data || error.message
+      );
+      throw error;
+  }
 };
 
 // Sincronizar inventarios entre Firebird y Shopify
@@ -137,13 +144,11 @@ const syncFirebirdWithShopify = async () => {
       let updateErrors = [];
 
       for (const firebirdItem of firebirdData) {
-          totalProcessed++;
           const shopifyProduct = shopifyProducts.flatMap(product => product.variants).find(
               variant => variant.barcode === firebirdItem.CODIGO_BARRAS
           );
 
           if (shopifyProduct) {
-              // Intentar actualizar el inventario
               try {
                   await updateShopifyInventory(
                       shopifyProduct.inventory_item_id,
@@ -152,15 +157,19 @@ const syncFirebirdWithShopify = async () => {
                   );
                   totalUpdated++;
               } catch (error) {
-                  console.error(`Error actualizando producto ${shopifyProduct.barcode}:`, error.message);
-                  updateErrors.push({ barcode: shopifyProduct.barcode, error: error.message });
+                  console.error(`Error al actualizar inventario para ${shopifyProduct.barcode}:`, error.message);
+                  updateErrors.push({
+                      barcode: shopifyProduct.barcode,
+                      error: error.message,
+                  });
               }
           } else {
-              // Producto no encontrado en Shopify
-              notFound.push({ barcode: firebirdItem.CODIGO_BARRAS });
+              console.log(`Producto no encontrado en Shopify: ${firebirdItem.CODIGO_BARRAS}`);
+              notFound.push({
+                  barcode: firebirdItem.CODIGO_BARRAS,
+              });
           }
       }
-
       console.log('Sincronización completada.');
       return {
           status: 'success',
