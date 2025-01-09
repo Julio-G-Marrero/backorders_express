@@ -1,5 +1,5 @@
 const routerShopify = require('express').Router();
-const { syncFirebirdWithShopify,fetchShopifyProducts } = require('../controllers/storesShopify');
+const { syncFirebirdWithShopify,fetchAllShopifyProducts } = require('../controllers/storesShopify');
 
 // Definimos la ruta para actualizar el inventario
 routerShopify.get('/syncInventory', async (req, res) => {
@@ -12,7 +12,7 @@ routerShopify.get('/syncInventory', async (req, res) => {
 });
 routerShopify.get('/products', async (req, res) => {
   try {
-      const result = await fetchShopifyProducts();
+      const result = await fetchAllShopifyProducts();
       res.json(result); // Devuelve el resumen en JSON
   } catch (error) {
       res.status(500).json({ status: 'error', message: error.message });
