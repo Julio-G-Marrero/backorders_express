@@ -197,7 +197,6 @@ const syncFirebirdWithShopify = async () => {
   }
 };
 
-
 module.exports = {
     fetchAllFirebirdData,
     fetchAllShopifyProducts,
