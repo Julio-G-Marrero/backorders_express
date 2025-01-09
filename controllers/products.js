@@ -4,6 +4,8 @@ const csv = require('csv-parser');
 const genericPool = require('generic-pool');
 const Firebird = require('node-firebird');
 const redis = require("redis");
+const iconv = require("iconv-lite");
+
 //Servidor Redis
 const client = redis.createClient({
   socket: {
@@ -49,55 +51,58 @@ const options = {
 
 // Configura el pool de conexiones con generic-pool
 const factory = {
-  create: function () {
-    return new Promise((resolve, reject) => {
-      Firebird.attach(options, (err, db) => {
-        if (err) return reject(err);
-        resolve(db);
-      });
+  create: () => new Promise((resolve, reject) => {
+    Firebird.attach(options, (err, db) => {
+      if (err) return reject(err);
+      resolve(db);
     });
-  },
-  destroy: function (db) {
-    return new Promise((resolve) => {
-      db.detach();
-      resolve();
+  }),
+  destroy: (db) => new Promise((resolve) => {
+    db.detach();
+    resolve();
+  }),
+};
+const pool = genericPool.createPool(factory, {
+  max: 10,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  acquireTimeoutMillis: 10000, // Tiempo máximo para adquirir una conexión
+});
+
+// Función para ejecutar consultas con promesas
+const runQuery = (db, query, params) =>
+  new Promise((resolve, reject) => {
+    db.query(query, params, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
     });
+});
+
+// Función para obtener datos de Redis con manejo de errores
+const getFromRedis = async (key) => {
+  try {
+    return await client.get(key);
+  } catch (err) {
+    console.error(`Error obteniendo clave ${key} de Redis:`, err);
+    return null;
   }
 };
-
-const pool = genericPool.createPool(factory, { max: 10, min: 2 });
-
-// Controlador para obtener productos de MongoDB
-module.exports.getProducts = (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 13;
-  const startIndex = (page - 1) * limit;
-  Product.find({}).skip(startIndex).limit(limit)
-    .then(products => res.send({ products }))
-    .catch((err) => res.send({ message: err }));
-};
-
-// Controlador para obtener productos por valores desde Firebird usando el pool
-const iconv = require("iconv-lite");
-
 module.exports.getProductsByValuesBDNliux = async (req, res) => {
   const { search } = req.query;
-
-  console.log("iniciando");
 
   if (!search) {
     return res.status(400).json({ error: "Proporcione un valor para buscar." });
   }
 
   try {
-    // Verificar si el resultado ya está en caché
-    const cachedResult = await client.get(search.toUpperCase());
+    // Verificar si el resultado está en caché
+    const cachedResult = await getFromRedis(search.toUpperCase());
     if (cachedResult) {
-      console.log("redis");
+      console.log("Resultado obtenido de Redis.");
       return res.json({ productos: JSON.parse(cachedResult) });
     }
 
-    // Obtener conexión del pool de Firebird
+    // Obtener conexión del pool
     const db = await pool.acquire();
 
     try {
@@ -117,33 +122,33 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
         ROWS 5;
       `;
 
-      db.query(query, [search.toUpperCase(), `${search.toUpperCase()}%`], async (err, result) => {
-        pool.release(db); // Liberar conexión al pool
+      const start = Date.now();
+      const result = await runQuery(db, query, [search.toUpperCase(), `${search.toUpperCase()}%`]);
+      const duration = Date.now() - start;
 
-        if (err) {
-          console.error("Error al ejecutar la consulta:", err);
-          return res.status(500).json({ error: "Error al ejecutar la consulta." });
-        }
+      if (duration > 2000) {
+        console.warn(`Consulta lenta (${duration}ms): ${query}`);
+      }
 
-        // Convertir los resultados a UTF-8
-        const utf8Result = result.map((row) => {
-          return Object.fromEntries(
-            Object.entries(row).map(([key, value]) => [
-              key,
-              typeof value === "string" ? iconv.decode(Buffer.from(value, "binary"), "utf-8") : value,
-            ])
-          );
-        });
-
-        // Guardar resultado en Redis (TTL de 345,600 segundos = 96 horas)
-        await client.setEx(search.toUpperCase(), 345600, JSON.stringify(utf8Result));
-
-        res.json({ productos: utf8Result });
+      // Convertir los resultados a UTF-8
+      const utf8Result = result.map((row) => {
+        return Object.fromEntries(
+          Object.entries(row).map(([key, value]) => [
+            key,
+            typeof value === "string" ? iconv.decode(Buffer.from(value, "binary"), "utf-8") : value,
+          ])
+        );
       });
+
+      // Guardar resultado en Redis (TTL de 96 horas)
+      await client.setEx(search.toUpperCase(), 345600, JSON.stringify(utf8Result));
+
+      res.json({ productos: utf8Result });
     } catch (err) {
-      pool.release(db); // Asegura liberar la conexión en caso de error
       console.error("Error al ejecutar consulta en Firebird:", err);
       res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
+    } finally {
+      pool.release(db); // Liberar conexión al pool
     }
   } catch (err) {
     console.error("Error general:", err);
@@ -151,7 +156,15 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
   }
 };
 
-
+// Controlador para obtener productos de MongoDB
+module.exports.getProducts = (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 13;
+  const startIndex = (page - 1) * limit;
+  Product.find({}).skip(startIndex).limit(limit)
+    .then(products => res.send({ products }))
+    .catch((err) => res.send({ message: err }));
+};
 
 
 // Controlador para crear un nuevo producto en MongoDB
