@@ -18,6 +18,7 @@ const clientRoutes = require("./routes/clients");
 const productRoutes = require("./routes/products");
 const admin = require('./controllers/admin')
 require('dotenv').config();
+const logs = []; // Almacén temporal en memoria (puedes usar una base de datos)
 
 const app = express();
 
@@ -70,6 +71,17 @@ app.post('/users/login', login);
 app.patch('/users/update-department-by-email', updateDepartment);
 app.use('/admin', admin);
 app.use('/shopify', routerShopify);
+// Endpoint para guardar logs de rendimiento
+app.post("/logs/performance", (req, res) => {
+  const log = req.body;
+  logs.push(log); // Agrega el log a la lista (o almacénalo en la base de datos)
+  console.log("Log registrado:", log);
+  res.status(201).send("Log registrado");
+});
+// Endpoint para consultar logs (para análisis)
+app.get("/logs/performance", (req, res) => {
+  res.json(logs);
+});
 // Middleware de autenticación
 app.use(auth);
 
