@@ -15,6 +15,7 @@ const fs = require("fs");
 const clientRoutes = require("./routes/clients");
 const productRoutes = require("./routes/products");
 const admin = require('./controllers/admin')
+require('dotenv').config();
 
 const app = express();
 

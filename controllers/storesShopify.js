@@ -60,6 +60,7 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
 
 // Obtener productos de Shopify
 const fetchShopifyProducts = async () => {
+  console.log('SHOPIFY_STORE_NAME:', process.env.SHOPIFY_STORE_NAME);
     try {
         const response = await axios.get(
             `https://${process.env.SHOPIFY_STORE_NAME}/admin/api/2023-01/products.json?limit=250`,
