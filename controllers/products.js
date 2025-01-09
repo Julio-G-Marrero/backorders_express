@@ -62,6 +62,7 @@ const factory = {
     resolve();
   }),
 };
+
 const pool = genericPool.createPool(factory, {
   max: 10,
   min: 2,
@@ -77,6 +78,25 @@ const runQuery = (db, query, params) =>
       resolve(result);
     });
 });
+
+// Función para registrar tiempos de respuesta y errores
+const logPerformance = async (type, details) => {
+  try {
+    await fetch("http://localhost:3000/logs/performance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type,
+        timestamp: new Date().toISOString(),
+        ...details,
+      }),
+    });
+  } catch (err) {
+    console.error("Error al registrar el rendimiento:", err);
+  }
+};
 
 // Función para obtener datos de Redis con manejo de errores
 const getFromRedis = async (key) => {
@@ -94,11 +114,19 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
     return res.status(400).json({ error: "Proporcione un valor para buscar." });
   }
 
+  const startTime = Date.now(); // Inicio del tiempo de respuesta
+
   try {
     // Verificar si el resultado está en caché
     const cachedResult = await getFromRedis(search.toUpperCase());
     if (cachedResult) {
       console.log("Resultado obtenido de Redis.");
+      await logPerformance("product_search", {
+        searchQuery: search.toUpperCase(),
+        duration: Date.now() - startTime,
+        status: "success",
+        cache: true,
+      });
       return res.json({ productos: JSON.parse(cachedResult) });
     }
 
@@ -122,9 +150,8 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
         ROWS 5;
       `;
 
-      const start = Date.now();
       const result = await runQuery(db, query, [search.toUpperCase(), `${search.toUpperCase()}%`]);
-      const duration = Date.now() - start;
+      const duration = Date.now() - startTime;
 
       if (duration > 2000) {
         console.warn(`Consulta lenta (${duration}ms): ${query}`);
@@ -143,15 +170,36 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
       // Guardar resultado en Redis (TTL de 96 horas)
       await client.setEx(search.toUpperCase(), 345600, JSON.stringify(utf8Result));
 
+      await logPerformance("product_search", {
+        searchQuery: search.toUpperCase(),
+        duration,
+        status: "success",
+        cache: false,
+      });
+
       res.json({ productos: utf8Result });
     } catch (err) {
+      const duration = Date.now() - startTime;
       console.error("Error al ejecutar consulta en Firebird:", err);
+      await logPerformance("product_search", {
+        searchQuery: search.toUpperCase(),
+        duration,
+        status: "error",
+        errorMessage: err.message,
+      });
       res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
     } finally {
       pool.release(db); // Liberar conexión al pool
     }
   } catch (err) {
+    const duration = Date.now() - startTime;
     console.error("Error general:", err);
+    await logPerformance("product_search", {
+      searchQuery: search.toUpperCase(),
+      duration,
+      status: "error",
+      errorMessage: err.message,
+    });
     res.status(500).json({ error: "Error interno del servidor." });
   }
 };
