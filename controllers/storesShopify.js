@@ -151,6 +151,7 @@ const syncFirebirdWithShopify = async () => {
       let totalUpdated = 0;
       let notFound = [];
       let updateErrors = [];
+      let lastUpdated = new Date().toISOString();
 
       for (const firebirdItem of firebirdData) {
           const shopifyProduct = shopifyProducts.flatMap(product => product.variants).find(
@@ -186,6 +187,7 @@ const syncFirebirdWithShopify = async () => {
           totalUpdated,
           notFoundCount: notFound.length,
           updateErrorCount: updateErrors.length,
+          lastUpdated: lastUpdated,
           notFound,
           updateErrors,
       };

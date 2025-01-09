@@ -28,18 +28,6 @@ cron.schedule('0 */2 * * *', async () => {
   }
 });
 
-// Programar sincronización automática cada 2 horas
-cron.schedule('0 */2 * * *', async () => {
-  console.log('Iniciando sincronización automática...');
-  try {
-      const result = await syncFirebirdWithShopify();
-      saveLastSyncResults(result);
-      console.log('Sincronización automática completada.');
-  } catch (error) {
-      console.error('Error en la sincronización automática:', error.message);
-  }
-});
-
 routerShopify.get('/syncInventory', async (req, res) => {
     if (isSyncInProgress) {
         return res.status(400).json({ status: 'error', message: 'Sincronización en progreso, intente más tarde.' });
