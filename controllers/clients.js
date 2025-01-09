@@ -3,22 +3,21 @@ const fs = require("fs"); // Asegúrate de que esta línea esté presente
 const csv = require("csv-parser");
 const genericPool = require('generic-pool');
 const redis = require("redis");
+const Firebird = require('node-firebird');
+const iconv = require("iconv-lite");
 
+// Configuración del pool de conexiones
 const factory = {
-  create: function () {
-    return new Promise((resolve, reject) => {
-      Firebird.attach(options, (err, db) => {
-        if (err) return reject(err);
-        resolve(db);
-      });
+  create: () => new Promise((resolve, reject) => {
+    Firebird.attach(options, (err, db) => {
+      if (err) return reject(err);
+      resolve(db);
     });
-  },
-  destroy: function (db) {
-    return new Promise((resolve) => {
-      db.detach();
-      resolve();
-    });
-  }
+  }),
+  destroy: (db) => new Promise((resolve) => {
+    db.detach();
+    resolve();
+  }),
 };
 
 //Servidor Redis
@@ -52,11 +51,32 @@ client.on("error", (err) => {
   }
 })();
 
+// Función para registrar tiempos de respuesta y errores
+const logPerformance = async (type, details) => {
+  try {
+    await fetch("http://localhost:3000/logs/performance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type,
+        timestamp: new Date().toISOString(),
+        ...details,
+      }),
+    });
+  } catch (err) {
+    console.error("Error al registrar el rendimiento:", err);
+  }
+};
 
-const pool = genericPool.createPool(factory, { max: 10, min: 2 });
+const pool = genericPool.createPool(factory, {
+  max: 10,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  acquireTimeoutMillis: 10000,
+});
 
-
-const Firebird = require('node-firebird');
 const options = {
   host: 'almacennorte.ddns.net',  // Dirección IP o hostname de Firebird
   port: 3050,                 // Puerto de Firebird
@@ -106,8 +126,7 @@ module.exports.getClientsByValues = (req,res) => {
   .catch((err) => res.status(500).send({ message: err }));
 }
 
-const iconv = require("iconv-lite");
-
+// Controlador para obtener clientes por búsqueda
 module.exports.getClientsByValuesBDNiux = async (req, res) => {
   const { search } = req.query;
 
@@ -115,15 +134,21 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
     return res.status(400).json({ error: "Por favor proporciona un valor para buscar." });
   }
 
-  try {
-    // Convertir búsqueda a mayúsculas para consistencia
-    const searchKey = search.toUpperCase();
+  const searchKey = search.toUpperCase(); // Normalizar búsqueda
+  const startTime = Date.now(); // Inicio del tiempo de respuesta
 
+  try {
     // Verificar si el resultado ya está en caché
     const cachedResult = await client.get(searchKey);
 
     if (cachedResult) {
       console.log("Resultado obtenido desde Redis.");
+      await logPerformance("client_search", {
+        searchQuery: searchKey,
+        duration: Date.now() - startTime,
+        status: "success",
+        cache: true,
+      });
       return res.json({ clientes: JSON.parse(cachedResult) });
     }
 
@@ -131,7 +156,6 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
     const db = await pool.acquire();
 
     try {
-      // Consulta optimizada con CONTAINING
       const query = `
         SELECT
           NOMBRE,
@@ -141,7 +165,7 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
         FROM CLIENTES
         WHERE
           NOMBRE CONTAINING ?
-        ROWS 5
+        ROWS 5;
       `;
 
       db.query(query, [searchKey], async (err, result) => {
@@ -149,10 +173,21 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
 
         if (err) {
           console.error("Error al ejecutar la consulta:", err);
+          await logPerformance("client_search", {
+            searchQuery: searchKey,
+            duration: Date.now() - startTime,
+            status: "error",
+            errorMessage: err.message,
+          });
           return res.status(500).json({ error: "Error al ejecutar la consulta." });
         }
 
         if (result.length === 0) {
+          await logPerformance("client_search", {
+            searchQuery: searchKey,
+            duration: Date.now() - startTime,
+            status: "not_found",
+          });
           return res.status(404).json({ message: "No se encontraron clientes con ese criterio." });
         }
 
@@ -166,24 +201,40 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
           );
         });
 
-        // Guardar resultado en Redis con un TTL de 12 horas (43200 segundos)
+        // Guardar resultado en Redis (TTL de 12 horas)
         await client.setEx(searchKey, 43200, JSON.stringify(utf8Result));
+
+        await logPerformance("client_search", {
+          searchQuery: searchKey,
+          duration: Date.now() - startTime,
+          status: "success",
+          cache: false,
+        });
 
         res.json({ clientes: utf8Result });
       });
     } catch (err) {
       pool.release(db); // Liberar conexión en caso de error
       console.error("Error al ejecutar consulta en Firebird:", err);
-      return res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
+      await logPerformance("client_search", {
+        searchQuery: searchKey,
+        duration: Date.now() - startTime,
+        status: "error",
+        errorMessage: err.message,
+      });
+      res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
     }
   } catch (err) {
-    console.error("Error obteniendo conexión del pool:", err);
-    return res.status(500).json({ error: "Error conectando a la base de datos." });
+    console.error("Error general:", err);
+    await logPerformance("client_search", {
+      searchQuery: searchKey,
+      duration: Date.now() - startTime,
+      status: "error",
+      errorMessage: err.message,
+    });
+    res.status(500).json({ error: "Error conectando a la base de datos." });
   }
 };
-
-
-
 
 module.exports.importClientsFromCSV = async (req, res) => {
   if (!req.file) {
