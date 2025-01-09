@@ -55,12 +55,12 @@ routerShopify.get('/syncInventory', async (req, res) => {
           completedAt: new Date(),
       };
 
-      await saveLastSync(syncData); // Función para guardar la información en la base de datos
+      await saveLastSyncResults(syncData); // Función para guardar la información en la base de datos
 
       res.json(result);
   } catch (error) {
       // Maneja errores y registra un intento fallido
-      await saveLastSync({
+      await saveLastSyncResults({
           status: 'error',
           totalProcessed: 0,
           totalUpdated: 0,
