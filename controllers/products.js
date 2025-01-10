@@ -185,7 +185,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
         cache: false,
       });
 
-      res.json({ productos: utf8Result });
+      return res.json({ productos: utf8Result });
     } catch (err) {
       const duration = Date.now() - startTime;
       console.error("Error al ejecutar consulta en Firebird:", err);
@@ -202,7 +202,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
         status: "error",
         errorMessage: err.message,
       });
-      res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
+      return res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
     } finally {
       pool.release(db); // Liberar conexión al pool
     }
@@ -222,7 +222,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
       status: "error",
       errorMessage: err.message,
     });
-    res.status(500).json({ error: "Error interno del servidor." });
+    return res.status(500).json({ error: "Error interno del servidor." });
   }
 };
 
@@ -307,19 +307,19 @@ module.exports.importCsvProducto = async (req, res) => {
         const result = await Product.bulkWrite(bulkOperations);
         const importedCount = result.upsertedCount + result.modifiedCount;
 
-        res.status(200).json({
+        return res.status(200).json({
           message: 'Datos importados correctamente.',
           importedCount,
         });
       } catch (err) {
         console.error('Error al insertar datos en MongoDB:', err);
-        res.status(500).send({ message: 'Error al importar datos del CSV' });
+        return res.status(500).send({ message: 'Error al importar datos del CSV' });
       } finally {
         fs.unlinkSync(filePath); // Eliminar archivo temporal
       }
     })
     .on('error', (err) => {
       console.error('Error al procesar el archivo CSV:', err);
-      res.status(500).send({ message: 'Error al procesar el archivo CSV' });
+      return res.status(500).send({ message: 'Error al procesar el archivo CSV' });
     });
 };

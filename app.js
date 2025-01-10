@@ -81,15 +81,14 @@ app.post("/logs/performance", (req, res) => {
   const logFilePath = path.join(__dirname, "logs/performance.log");
   fs.readFile(logFilePath, "utf8", (err, data) => {
     if (err) {
-      return res.status(500).json({ error: "No se pudo leer el archivo de logs." });
+      return res.status(500).json({ error: "No se pudo leer el archivo de logs." }); // El `return` evita continuar.
     }
-
-    const logs = data.split("\n").filter((line) => line).map((line) => JSON.parse(line));
-    res.json(logs);
+    res.json({ logs: data });
   });
   logs.push(log); // Agrega el log a la lista (o almacénalo en la base de datos)
   console.log("Log registrado:", log);
   res.status(201).send("Log registrado");
+  return;
 });
 // Endpoint para consultar logs (para análisis)
 app.get("/logs/performance", (req, res) => {

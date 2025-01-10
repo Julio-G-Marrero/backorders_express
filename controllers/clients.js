@@ -258,7 +258,7 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
         status: "error",
         errorMessage: err.message,
       });
-      res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
+      return res.status(500).json({ error: "Error al ejecutar consulta en Firebird." });
     }
   } catch (err) {
     console.error("Error general:", err);
@@ -275,7 +275,7 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
       status: "error",
       errorMessage: err.message,
     });
-    res.status(500).json({ error: "Error conectando a la base de datos." });
+    return res.status(500).json({ error: "Error conectando a la base de datos." });
   }
 };
 
@@ -332,7 +332,7 @@ module.exports.importClientsFromCSV = async (req, res) => {
     }
   } catch (error) {
     console.error('Error al importar datos:', error);
-    res.status(500).send('Error al importar clientes.');
+    return res.status(500).send('Error al importar clientes.');
   } finally {
     fs.unlinkSync(filePath); // Eliminar archivo temporal
   }
