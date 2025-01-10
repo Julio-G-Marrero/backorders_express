@@ -122,13 +122,6 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
     const cachedResult = await getFromRedis(search.toUpperCase());
     if (cachedResult) {
       console.log("Resultado obtenido de Redis.");
-      logger.error({
-        type: "product_search",
-        searchQuery: searchKey,
-        duration: Date.now() - startTime,
-        status: "error",
-        errorMessage: err.message,
-      });
       await logPerformance("product_search", {
         searchQuery: search.toUpperCase(),
         duration: Date.now() - startTime,
