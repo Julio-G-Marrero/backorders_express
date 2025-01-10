@@ -19,6 +19,9 @@ const productRoutes = require("./routes/products");
 const admin = require('./controllers/admin')
 require('dotenv').config();
 const logger = require('./routes/logger')
+// Contadores globales
+global.redisQueryCount = 0;  // Número de consultas provenientes de Redis
+global.firebirdQueryCount = 0; // Número de consultas provenientes de Firebird
 
 const app = express();
 
@@ -105,9 +108,29 @@ app.get("/logs/performance", (req, res) => {
     const logs = data
       .split("\n")
       .filter((line) => line.trim() !== "") // Filtra líneas vacías
-      .map((line) => JSON.parse(line)); // Convierte cada línea en un objeto JSON
+      .map((line) => {
+        try {
+          return JSON.parse(line); // Convierte cada línea en un objeto JSON
+        } catch (err) {
+          console.error("Error al parsear una línea de log:", line, err);
+          return null; // Ignora líneas mal formadas
+        }
+      })
+      .filter((log) => log !== null); // Filtra logs mal formados
 
-    res.json({ logs });
+    // Agregar los contadores globales
+    const redisQueryCount = global.redisQueryCount || 0;
+    const firebirdQueryCount = global.firebirdQueryCount || 0;
+    const totalQueries = redisQueryCount + firebirdQueryCount;
+
+    res.json({
+      logs,
+      statistics: {
+        redisQueryCount,
+        firebirdQueryCount,
+        totalQueries,
+      },
+    });
   });
 });
 

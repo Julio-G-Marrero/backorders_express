@@ -137,13 +137,15 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
 
   const searchKey = search.toUpperCase(); // Normalizar búsqueda
   const startTime = Date.now(); // Inicio del tiempo de respuesta
+  const cacheKey = `client:${searchKey}`; // Clave única para clientes
 
   try {
     // Verificar si el resultado ya está en caché
-    const cachedResult = await client.get(searchKey);
+    const cachedResult = await getFromRedis(cacheKey);
 
     if (cachedResult) {
       console.log("Resultado obtenido desde Redis.");
+      global.redisQueryCount++; // Incrementar el contador de Redis
       logger.info({
         type: "client_search",
         searchQuery: searchKey,
@@ -212,6 +214,7 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
           });
           return res.status(404).json({ message: "No se encontraron clientes con ese criterio." });
         }
+        global.firebirdQueryCount++; // Incrementar el contador de Firebird
 
         // Convertir los resultados a UTF-8
         const utf8Result = result.map((row) => {

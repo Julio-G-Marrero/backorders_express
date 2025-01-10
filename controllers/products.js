@@ -6,6 +6,8 @@ const Firebird = require('node-firebird');
 const redis = require("redis");
 const iconv = require("iconv-lite");
 const logger = require('../routes/logger-performance')
+let redisQueryCount = 0;  // Número de consultas provenientes de Redis
+let firebirdQueryCount = 0; // Número de consultas provenientes de Firebird
 //Servidor Redis
 const client = redis.createClient({
   socket: {
@@ -114,6 +116,8 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
     return res.status(400).json({ error: "Proporcione un valor de búsqueda válido." });
   }
   const searchKey = search.toUpperCase(); // Normalizar búsqueda
+  const cacheKey = `product:${searchKey}`; // Clave única para productos
+
   if (searchKey.length > 100) {
     return res.status(400).json({ error: "El término de búsqueda es demasiado largo." });
   }
@@ -121,9 +125,11 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
 
   try {
     // Verificar si el resultado está en caché
-    const cachedResult = await getFromRedis(search.toUpperCase());
+    const cachedResult = await getFromRedis(cacheKey);
     if (cachedResult) {
       console.log("Resultado obtenido de Redis.");
+      global.redisQueryCount++; // Incrementar el contador de Redis
+      redisQueryCount++; // Incrementar contador de consultas a Redis
       await logPerformance("product_search", {
         searchQuery: search.toUpperCase(),
         duration: Date.now() - startTime,
@@ -153,6 +159,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
       `;
 
       const result = await runQuery(db, query, [search.toUpperCase(), `${search.toUpperCase()}%`]);
+      global.firebirdQueryCount++; // Incrementar el contador de Firebird
       const duration = Date.now() - startTime;
 
       if (duration > 2000) {
@@ -170,7 +177,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
       });
 
       // Guardar resultado en Redis (TTL de 96 horas)
-      await client.setEx(search.toUpperCase(), 345600, JSON.stringify(utf8Result));
+      await client.setEx(cacheKey, 345600, JSON.stringify(utf8Result)); // TTL: 96 horas
 
       await logPerformance("product_search", {
         searchQuery: search.toUpperCase(),
