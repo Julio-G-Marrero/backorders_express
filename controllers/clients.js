@@ -5,6 +5,7 @@ const genericPool = require('generic-pool');
 const redis = require("redis");
 const Firebird = require('node-firebird');
 const iconv = require("iconv-lite");
+const logger = require('../routes/logger-performance')
 
 // Configuración del pool de conexiones
 const factory = {
@@ -143,6 +144,13 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
 
     if (cachedResult) {
       console.log("Resultado obtenido desde Redis.");
+      logger.info({
+        type: "client_search",
+        searchQuery: searchKey,
+        duration: Date.now() - startTime,
+        status: "success",
+        cache: true,
+      });
       await logPerformance("client_search", {
         searchQuery: searchKey,
         duration: Date.now() - startTime,
@@ -173,6 +181,13 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
 
         if (err) {
           console.error("Error al ejecutar la consulta:", err);
+          logger.info({
+            type: "client_search",
+            searchQuery: searchKey,
+            duration: Date.now() - startTime,
+            status: "success",
+            cache: true,
+          });
           await logPerformance("client_search", {
             searchQuery: searchKey,
             duration: Date.now() - startTime,
@@ -183,6 +198,13 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
         }
 
         if (result.length === 0) {
+          logger.info({
+            type: "client_search",
+            searchQuery: searchKey,
+            duration: Date.now() - startTime,
+            status: "success",
+            cache: true,
+          });
           await logPerformance("client_search", {
             searchQuery: searchKey,
             duration: Date.now() - startTime,
@@ -203,6 +225,13 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
 
         // Guardar resultado en Redis (TTL de 12 horas)
         await client.setEx(searchKey, 43200, JSON.stringify(utf8Result));
+        logger.info({
+          type: "client_search",
+          searchQuery: searchKey,
+          duration: Date.now() - startTime,
+          status: "success",
+          cache: false,
+        });
 
         await logPerformance("client_search", {
           searchQuery: searchKey,
@@ -216,6 +245,13 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
     } catch (err) {
       pool.release(db); // Liberar conexión en caso de error
       console.error("Error al ejecutar consulta en Firebird:", err);
+      logger.error({
+        type: "client_search",
+        searchQuery: searchKey,
+        duration: Date.now() - startTime,
+        status: "error",
+        errorMessage: err.message,
+      });
       await logPerformance("client_search", {
         searchQuery: searchKey,
         duration: Date.now() - startTime,
@@ -226,6 +262,13 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
     }
   } catch (err) {
     console.error("Error general:", err);
+    logger.error({
+      type: "client_search",
+      searchQuery: searchKey,
+      duration: Date.now() - startTime,
+      status: "error",
+      errorMessage: err.message,
+    });
     await logPerformance("client_search", {
       searchQuery: searchKey,
       duration: Date.now() - startTime,

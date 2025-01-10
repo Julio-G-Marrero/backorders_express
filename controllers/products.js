@@ -5,7 +5,7 @@ const genericPool = require('generic-pool');
 const Firebird = require('node-firebird');
 const redis = require("redis");
 const iconv = require("iconv-lite");
-
+const logger = require('../routes/logger-performance')
 //Servidor Redis
 const client = redis.createClient({
   socket: {
@@ -109,6 +109,7 @@ const getFromRedis = async (key) => {
 };
 module.exports.getProductsByValuesBDNliux = async (req, res) => {
   const { search } = req.query;
+  const searchKey = search.toUpperCase(); // Normalizar búsqueda
 
   if (!search) {
     return res.status(400).json({ error: "Proporcione un valor para buscar." });
@@ -121,6 +122,13 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
     const cachedResult = await getFromRedis(search.toUpperCase());
     if (cachedResult) {
       console.log("Resultado obtenido de Redis.");
+      logger.error({
+        type: "product_search",
+        searchQuery: searchKey,
+        duration: Date.now() - startTime,
+        status: "error",
+        errorMessage: err.message,
+      });
       await logPerformance("product_search", {
         searchQuery: search.toUpperCase(),
         duration: Date.now() - startTime,
@@ -172,7 +180,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
 
       await logPerformance("product_search", {
         searchQuery: search.toUpperCase(),
-        duration,
+        duration: Date.now() - startTime,
         status: "success",
         cache: false,
       });
@@ -181,6 +189,13 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
     } catch (err) {
       const duration = Date.now() - startTime;
       console.error("Error al ejecutar consulta en Firebird:", err);
+      logger.error({
+        type: "product_search",
+        searchQuery: searchKey,
+        duration: Date.now() - startTime,
+        status: "error",
+        errorMessage: err.message,
+      });
       await logPerformance("product_search", {
         searchQuery: search.toUpperCase(),
         duration,
@@ -194,6 +209,13 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error("Error general:", err);
+    logger.error({
+      type: "product_search",
+      searchQuery: searchKey,
+      duration: Date.now() - startTime,
+      status: "error",
+      errorMessage: err.message,
+    });
     await logPerformance("product_search", {
       searchQuery: search.toUpperCase(),
       duration,

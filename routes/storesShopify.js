@@ -129,4 +129,21 @@ routerShopify.get('/lastSyncResults', async (req, res) => {
   }
 });
 
+routerShopify.delete("/clearLogs", async (req, res) => {
+  try {
+      const logFilePath = path.join(__dirname, "logs", "errors.log");
+
+      // Verifica si el archivo de logs existe antes de eliminarlo
+      if (fs.existsSync(logFilePath)) {
+          fs.writeFileSync(logFilePath, ""); // Vacía el archivo
+          res.json({ status: "success", message: "Logs eliminados exitosamente." });
+      } else {
+          res.status(404).json({ status: "error", message: "El archivo de logs no existe." });
+      }
+  } catch (error) {
+      console.error("Error al limpiar los logs:", error);
+      res.status(500).json({ status: "error", message: "Error al limpiar los logs." });
+  }
+});
+
 module.exports = routerShopify;
