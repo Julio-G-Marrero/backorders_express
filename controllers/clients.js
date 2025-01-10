@@ -89,6 +89,14 @@ const options = {
   connectTimeout: 40000,
 };
 
+const getFromRedis = async (key) => {
+  try {
+    return await client.get(key); // 'client' es la instancia de Redis
+  } catch (err) {
+    console.error(`Error obteniendo clave ${key} de Redis:`, err);
+    return null; // Devuelve null si hay un error
+  }
+};
 
 module.exports.getClients = (req,res) => {
   const page = parseInt(req.query.page) || 1;
