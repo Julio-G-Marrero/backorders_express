@@ -1,6 +1,6 @@
 const routerShopify = require('express').Router();
 const cron = require('node-cron');
-const logger = require('./logger');
+const logger = require('./logger')
 
 const { syncFirebirdWithShopify,saveLastSyncResults, getLastSyncResults, } = require('../controllers/storesShopify');
 
