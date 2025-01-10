@@ -135,7 +135,7 @@ app.get('/logs/errors-performance', (req, res) => {
 });
 
 app.delete("/logs/errors-performance", (req, res) => {
-  const logFilePath = path.join(__dirname, "logs/errors-performance.log");
+  const logFilePath = path.join(__dirname, '/routes/logs/errors-performance.log'); // Ruta del archivo de logs
 
   fs.writeFile(logFilePath, "", (err) => {
     if (err) {
