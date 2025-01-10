@@ -19,7 +19,7 @@ const productRoutes = require("./routes/products");
 const admin = require('./controllers/admin')
 require('dotenv').config();
 const logs = []; // Almacén temporal en memoria (puedes usar una base de datos)
-const logger = require('./logger');
+const logger = require('./routes/logger')
 
 const app = express();
 

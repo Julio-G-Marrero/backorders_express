@@ -1,5 +1,7 @@
 const axios = require('axios');
 const Firebird = require('node-firebird');
+const logger = require('../routes/logger')
+
 let lastSyncResults = null;
 
 // Configuración de Firebird
