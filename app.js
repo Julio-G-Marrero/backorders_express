@@ -111,6 +111,29 @@ app.get("/logs/performance", (req, res) => {
   });
 });
 
+app.get('/logs/errors-performance', (req, res) => {
+  const logFilePath = path.join(__dirname, 'logs/errors-performance.log'); // Ruta del archivo de logs
+
+  fs.readFile(logFilePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error al leer el archivo de logs:', err);
+      return res.status(500).json({ message: 'No se pudo leer el archivo de logs.' });
+    }
+
+    try {
+      const logs = data
+        .split('\n') // Divide por línea
+        .filter(line => line.trim() !== '') // Filtra líneas vacías
+        .map(line => JSON.parse(line)); // Convierte cada línea a un objeto JSON
+
+      res.status(200).json({ logs });
+    } catch (parseErr) {
+      console.error('Error al analizar los logs:', parseErr);
+      res.status(500).json({ message: 'Error al analizar los logs.' });
+    }
+  });
+});
+
 // Middleware de autenticación
 app.use(auth);
 
