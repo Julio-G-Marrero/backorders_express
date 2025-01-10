@@ -81,23 +81,43 @@ routerShopify.get('/syncInventory', async (req, res) => {
   }
 });
 
-
 routerShopify.get('/lastSyncResults', async (req, res) => {
   try {
-      // Lee los datos de la última sincronización desde donde los almacenas (DB, archivo, etc.)
-      const lastSyncData = await getLastSyncResults(); // Asegúrate de que esta función esté implementada
+      // Leer los datos de la última sincronización (reemplaza esta función según tu lógica actual)
+      const lastSyncData = await getLastSyncResults(); // Implementa esta función según tus necesidades
+
+      // Inicializa la estructura de datos
+      const syncResults = {
+          status: '',
+          totalProcessed: 0,
+          totalUpdated: 0,
+          notFound: [],
+          errors: [],
+          updated: [],
+      };
+
+      // Actualiza la estructura con los datos obtenidos
+      if (lastSyncData) {
+          syncResults.status = lastSyncData.status || '';
+          syncResults.totalProcessed = lastSyncData.totalProcessed || 0;
+          syncResults.totalUpdated = lastSyncData.totalUpdated || 0;
+          syncResults.notFound = lastSyncData.notFound || [];
+          syncResults.errors = lastSyncData.errors || [];
+          syncResults.updated = lastSyncData.updated || [];
+      }
 
       // Leer los errores registrados en el archivo de logs
-      const logFilePath = path.join(__dirname, 'logs/errors.log');
-      const logs = fs.readFileSync(logFilePath, 'utf8')
-          .split('\n')
-          .filter((line) => line.trim() !== '');
+      const logFilePath = path.join(__dirname, '../logs/errors.log');
+      const errorLogs = fs.existsSync(logFilePath)
+          ? fs.readFileSync(logFilePath, 'utf8')
+              .split('\n')
+              .filter((line) => line.trim() !== '') // Filtrar líneas vacías
+          : [];
 
-      res.json({
-          status: 'success',
-          lastSyncData,
-          logs, // Incluye los logs en la respuesta
-      });
+      // Agregar los logs al resultado
+      syncResults.errorLogs = errorLogs;
+
+      res.json(syncResults);
   } catch (error) {
       logger.error(`Error al obtener los resultados de la sincronización: ${error.message}`);
       res.status(500).json({
