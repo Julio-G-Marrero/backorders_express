@@ -94,6 +94,7 @@ routerShopify.get('/lastSyncResults', async (req, res) => {
           notFound: [],
           errors: [],
           updated: [],
+          lastUpdated: null
       };
 
       // Actualiza la estructura con los datos obtenidos
@@ -104,6 +105,7 @@ routerShopify.get('/lastSyncResults', async (req, res) => {
           syncResults.notFound = lastSyncData.notFound || [];
           syncResults.errors = lastSyncData.errors || [];
           syncResults.updated = lastSyncData.updated || [];
+          syncResults.lastUpdated = lastSyncData.lastUpdated || null; // Fecha de la última sincronización
       }
 
       // Leer los errores registrados en el archivo de logs
