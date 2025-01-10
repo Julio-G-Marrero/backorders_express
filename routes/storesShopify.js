@@ -80,7 +80,7 @@ routerShopify.get('/syncInventory', async (req, res) => {
 });
 
 
-router.get('/lastSyncResults', async (req, res) => {
+routerShopify.get('/lastSyncResults', async (req, res) => {
   try {
       // Lee los datos de la última sincronización desde donde los almacenas (DB, archivo, etc.)
       const lastSyncData = await getLastSyncData(); // Asegúrate de que esta función esté implementada
