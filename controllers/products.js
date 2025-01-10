@@ -109,12 +109,14 @@ const getFromRedis = async (key) => {
 };
 module.exports.getProductsByValuesBDNliux = async (req, res) => {
   const { search } = req.query;
-  const searchKey = search.toUpperCase(); // Normalizar búsqueda
-
-  if (!search) {
-    return res.status(400).json({ error: "Proporcione un valor para buscar." });
+  // Validación de entrada
+  if (!search || typeof search !== "string" || search.trim().length === 0) {
+    return res.status(400).json({ error: "Proporcione un valor de búsqueda válido." });
   }
-
+  const searchKey = search.toUpperCase(); // Normalizar búsqueda
+  if (searchKey.length > 100) {
+    return res.status(400).json({ error: "El término de búsqueda es demasiado largo." });
+  }
   const startTime = Date.now(); // Inicio del tiempo de respuesta
 
   try {
@@ -146,8 +148,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
         FROM
           CATALOGO
         WHERE
-          UPPER(CODIGO_BARRAS) STARTING WITH UPPER(?) OR
-          UPPER(DESCRIPCION) LIKE UPPER(?)
+          (UPPER(CODIGO_MAT) = ? OR UPPER(DESCRIPCION) CONTAINING ?)
         ROWS 5;
       `;
 
