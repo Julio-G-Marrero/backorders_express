@@ -90,10 +90,6 @@ app.post("/logs/performance", (req, res) => {
   res.status(201).send("Log registrado");
   return;
 });
-// Endpoint para consultar logs (para análisis)
-app.get("/logs/performance", (req, res) => {
-  res.json(logs);
-});
 // Middleware de autenticación
 app.use(auth);
 
