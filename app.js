@@ -18,7 +18,6 @@ const clientRoutes = require("./routes/clients");
 const productRoutes = require("./routes/products");
 const admin = require('./controllers/admin')
 require('dotenv').config();
-const logs = []; // Almacén temporal en memoria (puedes usar una base de datos)
 const logger = require('./routes/logger')
 
 const app = express();
@@ -46,10 +45,13 @@ app.use(cors({
   credentials: true, // Habilitar envío de cookies si es necesario
 }));
 app.options("*", cors());
+
+// Middleware para manejo de errores
 app.use((err, req, res, next) => {
   logger.error(`Error en Express: ${err.message}`);
   res.status(500).json({ status: 'error', message: 'Ocurrió un error en el servidor.' });
 });
+
 // Conexión a MongoDB
 mongoose.connect('mongodb://localhost:27017/backorder', {})
   .then(() => console.log("Conectado a MongoDB"))
@@ -79,17 +81,36 @@ app.use('/shopify', routerShopify);
 app.post("/logs/performance", (req, res) => {
   const log = req.body;
   const logFilePath = path.join(__dirname, "logs/performance.log");
+
+  // Escribe el log en el archivo en lugar de enviar múltiples respuestas
+  fs.appendFile(logFilePath, JSON.stringify(log) + "\n", (err) => {
+    if (err) {
+      console.error("Error al escribir en el archivo de logs:", err);
+      return res.status(500).json({ error: "No se pudo guardar el log." });
+    }
+    console.log("Log registrado:", log);
+    res.status(201).send("Log registrado");
+  });
+});
+
+app.get("/logs/performance", (req, res) => {
+  const logFilePath = path.join(__dirname, "logs/performance.log");
+
   fs.readFile(logFilePath, "utf8", (err, data) => {
     if (err) {
-      return res.status(500).json({ error: "No se pudo leer el archivo de logs." }); // El `return` evita continuar.
+      console.error("Error al leer el archivo de logs:", err);
+      return res.status(500).json({ error: "No se pudieron obtener los logs." });
     }
-    res.json({ logs: data });
+
+    const logs = data
+      .split("\n")
+      .filter((line) => line.trim() !== "") // Filtra líneas vacías
+      .map((line) => JSON.parse(line)); // Convierte cada línea en un objeto JSON
+
+    res.json({ logs });
   });
-  logs.push(log); // Agrega el log a la lista (o almacénalo en la base de datos)
-  console.log("Log registrado:", log);
-  res.status(201).send("Log registrado");
-  return;
 });
+
 // Middleware de autenticación
 app.use(auth);
 
