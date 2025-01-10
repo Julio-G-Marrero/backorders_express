@@ -134,6 +134,19 @@ app.get('/logs/errors-performance', (req, res) => {
   });
 });
 
+app.delete("/logs/errors-performance", (req, res) => {
+  const logFilePath = path.join(__dirname, "logs/errors-performance.log");
+
+  fs.writeFile(logFilePath, "", (err) => {
+    if (err) {
+      console.error("Error al limpiar el archivo de logs:", err);
+      return res.status(500).json({ message: "Error al limpiar el archivo de logs" });
+    }
+    console.log("Archivo de logs limpiado");
+    res.status(200).json({ message: "Logs limpiados exitosamente" });
+  });
+});
+
 // Middleware de autenticación
 app.use(auth);
 
