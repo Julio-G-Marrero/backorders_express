@@ -111,6 +111,31 @@ app.get("/logs/performance", (req, res) => {
   });
 });
 
+app.delete("/logs/performance", (req, res) => {
+  const logFilePath = path.join(__dirname, "logs/performance.log");
+
+  fs.unlink(logFilePath, (err) => {
+    if (err) {
+      if (err.code === "ENOENT") {
+        // Si el archivo no existe, devolver un mensaje adecuado
+        return res.status(404).json({ message: "El archivo de logs no existe." });
+      }
+      console.error("Error al eliminar el archivo de logs:", err);
+      return res.status(500).json({ error: "No se pudieron borrar los logs." });
+    }
+
+    // Crear un archivo vacío nuevamente para evitar problemas de escritura futura
+    fs.writeFile(logFilePath, "", (writeErr) => {
+      if (writeErr) {
+        console.error("Error al recrear el archivo de logs:", writeErr);
+        return res.status(500).json({ error: "No se pudo recrear el archivo de logs." });
+      }
+
+      res.status(200).json({ message: "Los logs han sido eliminados correctamente." });
+    });
+  });
+});
+
 app.get('/logs/errors-performance', (req, res) => {
   const logFilePath = path.join(__dirname, '/routes/logs/errors-performance.log'); // Ruta del archivo de logs
 
