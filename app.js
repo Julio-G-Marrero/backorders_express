@@ -19,6 +19,7 @@ const productRoutes = require("./routes/products");
 const admin = require('./controllers/admin')
 require('dotenv').config();
 const logs = []; // Almacén temporal en memoria (puedes usar una base de datos)
+const logger = require('./logger');
 
 const app = express();
 
@@ -45,7 +46,10 @@ app.use(cors({
   credentials: true, // Habilitar envío de cookies si es necesario
 }));
 app.options("*", cors());
-
+app.use((err, req, res, next) => {
+  logger.error(`Error en Express: ${err.message}`);
+  res.status(500).json({ status: 'error', message: 'Ocurrió un error en el servidor.' });
+});
 // Conexión a MongoDB
 mongoose.connect('mongodb://localhost:27017/backorder', {})
   .then(() => console.log("Conectado a MongoDB"))

@@ -41,6 +41,8 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
             Firebird.attach(firebirdOptions, (err, db) => {
                 if (err) {
                     console.error('Error al conectar a Firebird:', err);
+                    logger.error(`Error durante la sincronización: ${err}`);
+
                     return reject(err);
                 }
 
@@ -48,6 +50,8 @@ const fetchAllFirebirdData = async (batchSize = 500) => {
                     db.detach();
                     if (err) {
                         console.error('Error ejecutando consulta:', err);
+                        logger.error(`Error durante la sincronización: ${err}`);
+
                         return reject(err);
                     }
                     resolve(result);
@@ -96,6 +100,7 @@ const fetchAllShopifyProducts = async () => {
       console.log(`Total de productos obtenidos de Shopify: ${allProducts.length}`);
       return allProducts;
   } catch (error) {
+      logger.error(`Error durante la sincronización: ${error.response?.data || error.message}`);
       console.error('Error al obtener productos de Shopify:', error.response?.data || error.message);
       throw error;
   }
@@ -193,6 +198,7 @@ const syncFirebirdWithShopify = async () => {
       };
   } catch (error) {
       console.error('Error durante la sincronización:', error.message);
+      logger.error(`Error durante la sincronización: ${error.message}`);
       throw error;
   }
 };

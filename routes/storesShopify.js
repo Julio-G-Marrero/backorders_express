@@ -1,5 +1,6 @@
 const routerShopify = require('express').Router();
 const cron = require('node-cron');
+const logger = require('./logger');
 
 const { syncFirebirdWithShopify,saveLastSyncResults, getLastSyncResults, } = require('../controllers/storesShopify');
 
@@ -11,6 +12,7 @@ const { syncFirebirdWithShopify,saveLastSyncResults, getLastSyncResults, } = req
       saveLastSyncResults(result);
       console.log('Sincronización inicial completada.');
   } catch (error) {
+      logger.error(`Error durante la sincronización: ${error.message}`);
       console.error('Error en la sincronización inicial:', error.message);
   }
 })();
@@ -78,12 +80,29 @@ routerShopify.get('/syncInventory', async (req, res) => {
 });
 
 
-routerShopify.get('/lastSyncResults', (req, res) => {
-  const lastResults = getLastSyncResults();
-  if (!lastResults) {
-      return res.status(404).json({ message: 'No hay resultados disponibles.' });
+router.get('/lastSyncResults', async (req, res) => {
+  try {
+      // Lee los datos de la última sincronización desde donde los almacenas (DB, archivo, etc.)
+      const lastSyncData = await getLastSyncData(); // Asegúrate de que esta función esté implementada
+
+      // Leer los errores registrados en el archivo de logs
+      const logFilePath = path.join(__dirname, 'logs/errors.log');
+      const logs = fs.readFileSync(logFilePath, 'utf8')
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+
+      res.json({
+          status: 'success',
+          lastSyncData,
+          logs, // Incluye los logs en la respuesta
+      });
+  } catch (error) {
+      logger.error(`Error al obtener los resultados de la sincronización: ${error.message}`);
+      res.status(500).json({
+          status: 'error',
+          message: 'Error al obtener los resultados de la sincronización.',
+      });
   }
-  res.json(lastResults);
 });
 
 module.exports = routerShopify;
