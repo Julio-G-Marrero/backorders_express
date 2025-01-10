@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const cors = require("cors");
 const cron = require('node-cron');
 const path = require("path");
-const fs = require("fs");
 const auth = require('./middleware/auth');
 const routerOrders = require('./routes/orders');
 const routerUsers = require('./routes/users');
