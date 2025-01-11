@@ -1,38 +1,12 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  codigo_barras: {
-    type: String,
-    required: true,
-  },
-  codigo_interno: {
-    type: String,
-    required: true,
-  },
-  descripcion: {
-    type: String,
-    required: true,
-  },
-  precio: {
-    type: String,
-    required: true,
-  },
-  familia: {
-    type: String,
-    default: "Diversa",
-  },
-  sub_familia: {
-    type: String,
-    default: "Diversa",
-  },
-  provedor: {
-    type: String,
-    default: "Diverso",
-  },
-  fecha_promesa_entrega: {
-    type: String,
-    default: "Sin Fecha",
-  },
+  codigoMat: { type: String, unique: true },
+  descripcion: String,
+  codigoBarras: String,
+  precioVenta: Number,
+  familia: String,
+  subFamilia: String,
+  updatedAt: { type: Date, default: Date.now },
 });
-
 module.exports = mongoose.model('Product', productSchema, 'products');

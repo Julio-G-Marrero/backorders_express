@@ -6,8 +6,8 @@ const Firebird = require('node-firebird');
 const redis = require("redis");
 const iconv = require("iconv-lite");
 const logger = require('../routes/logger-performance')
-let redisQueryCount = 0;  // Número de consultas provenientes de Redis
-let firebirdQueryCount = 0; // Número de consultas provenientes de Firebird
+const cron = require('node-cron');
+
 //Servidor Redis
 const client = redis.createClient({
   socket: {
@@ -37,6 +37,58 @@ client.on("error", (err) => {
   } catch (err) {
     console.error("Error al conectar con Redis:", err);
   }
+})();
+
+// Función para sincronizar productos desde Firebird a MongoDB
+const syncProducts = async () => {
+  console.log("Iniciando sincronización de productos...");
+  try {
+    const db = await pool.acquire();
+    try {
+      const query = `
+        SELECT
+          CODIGO_MAT AS codigoMat,
+          DESCRIPCION AS descripcion,
+          CODIGO_BARRAS AS codigoBarras,
+          PRECIO_VENTA AS precioVenta,
+          FAMILIA AS familia,
+          SUB_FAMILIA AS subFamilia
+        FROM CATALOGO
+      `;
+      const products = await runQuery(db, query, []);
+      const formattedProducts = products.map((p) => ({
+        codigoMat: p.CODIGO_MAT,
+        descripcion: p.DESCRIPCION,
+        codigoBarras: p.CODIGO_BARRAS,
+        precioVenta: p.PRECIO_VENTA,
+        familia: p.FAMILIA,
+        subFamilia: p.SUB_FAMILIA,
+      }));
+      // Upsert para actualizar o insertar productos
+      for (const product of formattedProducts) {
+        await Product.updateOne({ codigoMat: product.codigoMat }, product, { upsert: true });
+      }
+      console.log("Sincronización de productos completada.");
+    } finally {
+      pool.release(db);
+    }
+  } catch (err) {
+    console.error("Error durante la sincronización de productos:", err);
+  }
+};
+
+// Sincronización periódica (cada hora)
+cron.schedule('0 * * * *', async () => {
+  console.log("Iniciando sincronización periódica...");
+  await syncProducts();
+  console.log("Sincronización periódica completada.");
+});
+
+// Sincronización inicial
+(async () => {
+  console.log("Iniciando sincronización Productos...");
+  await syncProducts();
+  console.log("Sincronización inicial productos completada.");
 })();
 
 // Opciones de configuración de Firebird

@@ -6,6 +6,7 @@ const redis = require("redis");
 const Firebird = require('node-firebird');
 const iconv = require("iconv-lite");
 const logger = require('../routes/logger-performance')
+const cron = require('node-cron');
 
 // Configuración del pool de conexiones
 const factory = {
@@ -51,6 +52,54 @@ client.on("error", (err) => {
     console.error("Error al conectar con Redis:", err);
   }
 })();
+
+// Función para sincronizar clientes desde Firebird a MongoDB
+const syncClients = async () => {
+  console.log("Iniciando sincronización de clientes...");
+  try {
+    const db = await pool.acquire();
+    try {
+      const query = `
+        SELECT
+          NOMBRE AS nombre,
+          DIRECCION AS direccion,
+          TELEFONO AS telefono,
+          E_MAIL AS email
+        FROM CLIENTES
+      `;
+      const clients = await runQuery(db, query, []);
+      const formattedClients = clients.map((c) => ({
+        nombre: c.NOMBRE,
+        direccion: c.DIRECCION,
+        telefono: c.TELEFONO,
+        email: c.E_MAIL,
+      }));
+      // Upsert para actualizar o insertar clientes
+      for (const client of formattedClients) {
+        await Client.updateOne({ telefono: client.telefono }, client, { upsert: true });
+      }
+      console.log("Sincronización de clientes completada.");
+    } finally {
+      pool.release(db);
+    }
+  } catch (err) {
+    console.error("Error durante la sincronización de clientes:", err);
+  }
+};
+// Sincronización inicial
+(async () => {
+  console.log("Iniciando sincronización inicial Clientes...");
+  await syncClients();
+  console.log("Sincronización inicial Clientes completada.");
+})();
+
+// Sincronización periódica (cada hora)
+cron.schedule('0 * * * *', async () => {
+  console.log("Iniciando sincronización periódica...");
+  await syncProducts();
+  console.log("Sincronización periódica completada.");
+});
+
 
 // Función para registrar tiempos de respuesta y errores
 const logPerformance = async (type, details) => {

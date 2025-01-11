@@ -72,6 +72,42 @@ app.use((req, res, next) => {
   next();
 });
 
+
+app.get('/products/test', async (req, res) => {
+  try {
+    // Obtener conexión del pool
+    const db = await pool.acquire();
+
+    try {
+      const query = `
+        SELECT
+          FIRST 2 *
+        FROM
+          CATALOGO
+      `;
+
+      const result = await runQuery(db, query, []);
+
+      // Convertir resultados a una estructura más legible
+      const formattedResult = result.map((row) => {
+        return Object.fromEntries(
+          Object.entries(row).map(([key, value]) => [
+            key,
+            typeof value === "string" ? value.trim() : value,
+          ])
+        );
+      });
+
+      res.json({ productos: formattedResult });
+    } finally {
+      pool.release(db); // Liberar la conexión al pool
+    }
+  } catch (err) {
+    console.error("Error al obtener productos de prueba:", err);
+    res.status(500).json({ error: "Error al obtener productos de prueba." });
+  }
+});
+
 // Rutas públicas
 app.use('/users/register', createUser);
 app.post('/users/login', login);
