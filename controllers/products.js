@@ -109,6 +109,17 @@ const getFromRedis = async (key) => {
     return null;
   }
 };
+async function retryQuery(queryFn, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await queryFn(); // Ejecuta la función pasada
+    } catch (err) {
+      if (i === retries - 1) throw err; // Si es el último intento, lanza el error
+      console.warn(`Reintento ${i + 1} fallido, intentando nuevamente...`, err.message);
+    }
+  }
+}
+
 module.exports.getProductsByValuesBDNliux = async (req, res) => {
   const { search } = req.query;
   // Validación de entrada
@@ -154,11 +165,16 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
         FROM
           CATALOGO
         WHERE
-          (UPPER(CODIGO_MAT) STARTING WITH ? OR UPPER(DESCRIPCION) CONTAINING ?)
+          UPPER(CODIGO_MAT) CONTAINING ? OR
+          UPPER(DESCRIPCION) CONTAINING ?
         ROWS 5;
       `;
 
-      const result = await runQuery(db, query, [searchKey, searchKey]);
+      // Usa retryQuery para ejecutar la consulta con reintentos
+      const result = await retryQuery(
+        () => runQuery(db, query, [searchKey, searchKey]),
+        3
+      );
       const duration = Date.now() - startTime;
 
       if (duration > 2000) {

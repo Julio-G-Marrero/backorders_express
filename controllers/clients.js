@@ -72,10 +72,10 @@ const logPerformance = async (type, details) => {
 };
 
 const pool = genericPool.createPool(factory, {
-  max: 10,
+  max: 20, // Incrementa el máximo de conexiones
   min: 2,
   idleTimeoutMillis: 30000,
-  acquireTimeoutMillis: 10000,
+  acquireTimeoutMillis: 20000,
 });
 
 const options = {
@@ -134,6 +134,7 @@ module.exports.getClientsByValues = (req,res) => {
   .then(clients => res.send({ clients }))
   .catch((err) => res.status(500).send({ message: err }));
 }
+
 
 // Controlador para obtener clientes por búsqueda
 module.exports.getClientsByValuesBDNiux = async (req, res) => {
