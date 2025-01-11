@@ -76,7 +76,7 @@ const Firebird = require('node-firebird');
 
 // Configuración de Firebird
 const options = {
-  host: 'almacennorte.ddns.net', // Dirección IP o hostname de Firebird
+  host: 'almacennorte.zapto.org', // Dirección IP o hostname de Firebird
   port: 3050,                    // Puerto de Firebird
   database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB', // Ruta de la base de datos
   user: 'SYSDBA',                // Usuario de Firebird
