@@ -72,24 +72,43 @@ app.use((req, res, next) => {
   next();
 });
 
-const { pool, runQuery } = require('./util/firebird'); // Asegúrate de importar estas utilidades
+const Firebird = require('node-firebird');
 
+// Configuración de Firebird
+const options = {
+  host: 'almacennorte.ddns.net', // Dirección IP o hostname de Firebird
+  port: 3050,                    // Puerto de Firebird
+  database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB', // Ruta de la base de datos
+  user: 'SYSDBA',                // Usuario de Firebird
+  password: 'masterkey',
+  WireCrypt: false,
+  charset: 'UTF8',
+  connectTimeout: 40000,
+};
+
+// Endpoint para obtener 2 productos de prueba
 app.get('/products/test', async (req, res) => {
-  try {
-    // Obtener conexión del pool
-    const db = await pool.acquire();
+  Firebird.attach(options, (err, db) => {
+    if (err) {
+      console.error("Error al conectar a Firebird:", err);
+      return res.status(500).json({ error: "No se pudo conectar a la base de datos." });
+    }
 
-    try {
-      const query = `
-        SELECT
-          FIRST 2 *
-        FROM
-          CATALOGO
-      `;
+    const query = `
+      SELECT
+        FIRST 2 *
+      FROM
+        CATALOGO
+    `;
 
-      const result = await runQuery(db, query, []);
+    db.query(query, [], (queryErr, result) => {
+      if (queryErr) {
+        console.error("Error al ejecutar la consulta:", queryErr);
+        db.detach();
+        return res.status(500).json({ error: "Error al ejecutar la consulta." });
+      }
 
-      // Convertir resultados a una estructura más legible
+      // Convertir resultados a formato legible
       const formattedResult = result.map((row) => {
         return Object.fromEntries(
           Object.entries(row).map(([key, value]) => [
@@ -99,14 +118,11 @@ app.get('/products/test', async (req, res) => {
         );
       });
 
+      // Enviar respuesta y liberar conexión
       res.json({ productos: formattedResult });
-    } finally {
-      pool.release(db); // Liberar la conexión al pool
-    }
-  } catch (err) {
-    console.error("Error al obtener productos de prueba:", err);
-    res.status(500).json({ error: "Error al obtener productos de prueba." });
-  }
+      db.detach();
+    });
+  });
 });
 
 // Rutas públicas
