@@ -77,23 +77,23 @@ const syncProducts = async () => {
   }
 };
 
-// Sincronización periódica (cada hora)
-cron.schedule('0 * * * *', async () => {
-  console.log("Iniciando sincronización periódica...");
-  await syncProducts();
-  console.log("Sincronización periódica completada.");
-});
+// // Sincronización periódica (cada hora)
+// cron.schedule('0 * * * *', async () => {
+//   console.log("Iniciando sincronización periódica...");
+//   await syncProducts();
+//   console.log("Sincronización periódica completada.");
+// });
 
-// Sincronización inicial
-(async () => {
-  console.log("Iniciando sincronización Productos...");
-  await syncProducts();
-  console.log("Sincronización inicial productos completada.");
-})();
+// // Sincronización inicial
+// (async () => {
+//   console.log("Iniciando sincronización Productos...");
+//   await syncProducts();
+//   console.log("Sincronización inicial productos completada.");
+// })();
 
 // Opciones de configuración de Firebird
 const options = {
-  host: 'almacennorte.ddns.net',  // Dirección IP o hostname de Firebird
+  host: 'almacennorte.zapto.org', // Dirección IP o hostname de Firebird
   port: 3050,                 // Puerto de Firebird
   database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB',  // Ruta de la base de datos
   user: 'SYSDBA',              // Usuario de Firebird

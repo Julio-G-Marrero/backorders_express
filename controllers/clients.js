@@ -86,19 +86,19 @@ const syncClients = async () => {
     console.error("Error durante la sincronización de clientes:", err);
   }
 };
-// Sincronización inicial
-(async () => {
-  console.log("Iniciando sincronización inicial Clientes...");
-  await syncClients();
-  console.log("Sincronización inicial Clientes completada.");
-})();
+// // Sincronización inicial
+// (async () => {
+//   console.log("Iniciando sincronización inicial Clientes...");
+//   await syncClients();
+//   console.log("Sincronización inicial Clientes completada.");
+// })();
 
-// Sincronización periódica (cada hora)
-cron.schedule('0 * * * *', async () => {
-  console.log("Iniciando sincronización periódica...");
-  await syncProducts();
-  console.log("Sincronización periódica completada.");
-});
+// // Sincronización periódica (cada hora)
+// cron.schedule('0 * * * *', async () => {
+//   console.log("Iniciando sincronización periódica...");
+//   await syncProducts();
+//   console.log("Sincronización periódica completada.");
+// });
 
 
 // Función para registrar tiempos de respuesta y errores
@@ -128,7 +128,7 @@ const pool = genericPool.createPool(factory, {
 });
 
 const options = {
-  host: 'almacennorte.ddns.net',  // Dirección IP o hostname de Firebird
+  host: 'almacennorte.zapto.org', // Dirección IP o hostname de Firebird
   port: 3050,                 // Puerto de Firebird
   database: 'C:\\FSPCorona_NEW\\SISTCRASH.GDB',  // Ruta de la base de datos
   user: 'SYSDBA',              // Usuario de Firebird
