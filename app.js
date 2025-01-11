@@ -72,6 +72,7 @@ app.use((req, res, next) => {
   next();
 });
 
+const { pool, runQuery } = require('./util/firebird'); // Asegúrate de importar estas utilidades
 
 app.get('/products/test', async (req, res) => {
   try {
