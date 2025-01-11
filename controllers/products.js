@@ -128,7 +128,7 @@ module.exports.getProductsByValuesBDNliux = async (req, res) => {
   }
 
   const searchKey = search.toUpperCase().trim();
-  const cacheKey = `product:${searchKey}`;
+  const cacheKey = `product_search:${searchKey}`; // Clave única para productos
 
   if (searchKey.length > 100) {
     return res.status(400).json({ error: "El término de búsqueda es demasiado largo." });

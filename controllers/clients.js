@@ -146,7 +146,7 @@ module.exports.getClientsByValuesBDNiux = async (req, res) => {
 
   const searchKey = search.toUpperCase(); // Normalizar búsqueda
   const startTime = Date.now(); // Inicio del tiempo de respuesta
-  const cacheKey = `client:${searchKey}`; // Clave única para clientes
+  const cacheKey = `client_search:${searchKey}`; // Clave única para clientes
 
   try {
     // Verificar si el resultado ya está en caché
